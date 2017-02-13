@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{.Name}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="/static/js/fn.js"></script>
+  </head>
+  <body>
+    <form action="/run" method="POST" enctype="multipart/form-data">
+      Reference Tree (.gz or not): <input type="file" name="reftree" /><br/>
+      Bootstrap Tree (.gz or not): <input type="file" name="boottree" /><br/>
+      <input type="submit"/>
+    </form>
+  </body>
+</html>
