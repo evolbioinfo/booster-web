@@ -1,12 +1,15 @@
 package server
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 
@@ -55,13 +58,20 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	hc := http.Client{}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("treeFile", "tree.nh")
+	part, err := writer.CreateFormFile("zipFile", "tree.tree.zip")
 	if err != nil {
 		io.LogError(err)
 		errorHandler(w, r, err)
 		return
 	}
-	part.Write(a.result.Newick())
+	b, comperr := compressString("tree.tree", a.result.Newick())
+	if comperr != nil {
+		io.LogError(comperr)
+		errorHandler(w, r, comperr)
+		return
+	}
+
+	part.Write(b)
 	_ = writer.WriteField("treeFormat", "newick")
 	_ = writer.WriteField("treeName", a.Id)
 
@@ -73,13 +83,19 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	req, err2 := http.NewRequest("POST", "http://itol.embl.de/batch_uploader.cgi", body)
 	if err2 != nil {
+		io.LogError(err2)
+		errorHandler(w, r, err2)
+		return
 	}
-	resp, err3 := client.Do(request)
+	//req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", "multipart/form-data")
+	resp, err3 := hc.Do(req)
 	if err3 != nil {
 		io.LogError(err3)
 		errorHandler(w, r, err3)
 		return
 	}
+
 	defer resp.Body.Close()
 	bodyresp, err4 := ioutil.ReadAll(resp.Body)
 	if err4 != nil {
@@ -89,20 +105,36 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	stringresp := string(bodyresp)
 	infos := strings.Split(stringresp, "\n")
-	// succregexp := regexp.Compile("^ERR")
-	// errregexp := regexp.Compile("^SUCCESS: (\\S+)")
-	// if errregexp.MatchString(infos[len(infos)-1]) {
-	// 	io.LogError(errors.New(fmt.Sprintf("Upload failed. iTOL returned the following error message: %s", infos[len(infos)-1])))
-	// 	errorHandler(w, r, err4)
-	// 	return
-	// }
-	// if succregexp.MatchString(infos[len(infos)-1]) {
-	// 	io.LogError(errors.New(fmt.Sprintf("Upload failed. iTOL returned the following error message: %s", infos[len(infos)-1])))
-	// 	errorHandler(w, r, err4)
-	// 	return
-	// }
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteString(stringresp)
+	errregexp, regerr := regexp.Compile("^ERR")
+	if regerr != nil {
+		io.LogError(regerr)
+		errorHandler(w, r, regerr)
+		return
+	}
+	succregexp, regerr2 := regexp.Compile("^SUCCESS: (\\S+)")
+	if regerr2 != nil {
+		io.LogError(regerr2)
+		errorHandler(w, r, regerr2)
+		return
+	}
+
+	if errregexp.MatchString(infos[len(infos)-1]) {
+		io.LogError(errors.New(fmt.Sprintf("Upload failed. iTOL returned the following error message: %s", infos[len(infos)-1])))
+		errorHandler(w, r, err4)
+		return
+	}
+
+	sub := succregexp.FindStringSubmatch(infos[len(infos)-1])
+	if len(sub) < 2 {
+		sub = succregexp.FindStringSubmatch(infos[0])
+	}
+
+	if len(sub) > 1 {
+		http.Redirect(w, r, "http://itol.embl.de/tree/"+sub[1], http.StatusSeeOther)
+	} else {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(bodyresp)
+	}
 }
 
 func newHandler(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +188,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-var validPath = regexp.MustCompile("^/(view)/([-a-zA-Z0-9]+)$")
+var validPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -182,4 +214,24 @@ func GetFormFileReader(f multipart.File, h *multipart.FileHeader) (*bufio.Reader
 		reader = bufio.NewReader(f)
 	}
 	return reader, nil
+}
+
+func compressString(filename, s string) ([]byte, error) {
+	var b bytes.Buffer
+	zw := zip.NewWriter(&b)
+	z, e := zw.Create(filename)
+	if e != nil {
+		return b.Bytes(), e
+	}
+	if _, err := z.Write([]byte(s)); err != nil {
+		return b.Bytes(), err
+	}
+
+	if err := zw.Flush(); err != nil {
+		return b.Bytes(), err
+	}
+	if err := zw.Close(); err != nil {
+		return b.Bytes(), err
+	}
+	return b.Bytes(), nil
 }

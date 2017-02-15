@@ -140,7 +140,7 @@ func initRunners(queuesize, nbrunner int) {
 					a.Message = err.Error()
 					a.Status = STATUS_ERROR
 				} else {
-					t.ClearPValues()
+					t.ClearPvalues()
 					a.result = t
 					a.Status = STATUS_FINISHED
 					a.Message = t.Newick()
