@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"html/template"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -14,15 +15,30 @@ import (
 	"github.com/fredericlemoine/sbsweb/io"
 )
 
-type errorInfo struct {
+type ErrorInfo struct {
 	Message string
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "text/html")
-	err2 := templates.ExecuteTemplate(w, "error.html", errorInfo{err.Error()})
-	if err2 != nil {
+	if t, err2 := getTemplate("error"); err2 != nil {
 		http.Error(w, err2.Error(), http.StatusInternalServerError)
+	} else {
+		if err2 := t.ExecuteTemplate(w, "layout", ErrorInfo{err.Error()}); err2 != nil {
+			http.Error(w, err2.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	var info interface{}
+	if t, err := getTemplate("index"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", info); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -38,10 +54,13 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 		errorHandler(w, r, existerr)
 		return
 	}
-	err := templates.ExecuteTemplate(w, "view.html", a)
-	if err != nil {
-		io.LogError(err)
+
+	if t, err := getTemplate("view"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", a); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -53,24 +72,33 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 		errorHandler(w, r, existerr)
 		return
 	}
-	upld := upload.NewItolUploader("", "")
-	url, _, err := upld.Upload(fmt.Sprintf("%d", a.Id), a.result)
-	if err != nil {
-		io.LogError(err)
-		errorHandler(w, r, err)
+	if a.Status == STATUS_FINISHED || a.Status == STATUS_TIMEOUT {
+		upld := upload.NewItolUploader("", "")
+		url, _, err := upld.Upload(fmt.Sprintf("%d", a.Id), a.result)
+		if err != nil {
+			io.LogError(err)
+			errorHandler(w, r, err)
+			return
+		}
+		http.Redirect(w, r, url, http.StatusSeeOther)
 		return
 	}
-
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	finishederr := errors.New("Analysis is not finished")
+	io.LogError(finishederr)
+	errorHandler(w, r, finishederr)
+	return
 }
 
 func newHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	var info interface{}
-	err := templates.ExecuteTemplate(w, "inputform.html", info)
-	if err != nil {
-		io.LogError(err)
+
+	if t, err := getTemplate("inputform"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", info); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -141,4 +169,12 @@ func GetFormFileReader(f multipart.File, h *multipart.FileHeader) (*bufio.Reader
 		reader = bufio.NewReader(f)
 	}
 	return reader, nil
+}
+
+func getTemplate(name string) (*template.Template, error) {
+	t, ok := templates[name]
+	if !ok {
+		return nil, errors.New("No template named " + name)
+	}
+	return t, nil
 }

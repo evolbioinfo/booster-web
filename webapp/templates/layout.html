@@ -1,0 +1,111 @@
+{{ define "layout" }}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <title>{{ template "title" .}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="/static/js/fn.js"></script>
+    <link href="/static/PasteurTheme/css/PasteurTheme_main.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/PasteurTheme/js/vendor.js"></script>
+    <script type="text/javascript" src="/static/bootstrap-3.3.6-dist/js/bootstrap.min.js" ></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  </head>
+  <body>
+    <div class="wrapper page-charte">
+      <div class="nav-container">
+        <div class="container">
+          <div class="logo"><a href="https://c3bi.pasteur.fr/">
+	      <img src="/static/PasteurTheme/images/logo.jpg"/>
+          </a></div>
+          <div class="elementItem">
+            <nav class="navbar navbar-default">
+              <div class="container-fluid">
+                <div class="navbar-header">
+                  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navigation" aria-expanded="false"> <span class="pull-right">Menu</span> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span>
+                  </button>
+                </div>
+                <div style="" aria-expanded="true" class="navbar-collapse collapse in" id="navigation">
+                  <ul class="nav navbar-nav pull-right">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/new">Run</a></li>
+                    <li><a href="/help">Help</a></li>
+                  </ul>
+                </div>
+              </div> 
+            </nav> 
+          </div>
+        </div> 
+      </div>
+      <div class="header-container center">
+        <div class="container">
+	  <div class="banner">
+            <h1><a class="siteTitle" href="/"> TBS - Transfert Bootstrap Support
+		<div class="subtitle">TBS Web application</div></a>
+            </h1> 
+          </div>
+	</div>
+      </div>
+      
+    <div class="main-container">
+        <div class="container">
+          {{ template "content" .}}
+        </div>
+    </div>
+    <div id="rightpanel">
+    </div>
+    <div id="footer" class="footer-container footer">
+      <div class="container">
+            <div class="row">
+              <div class="col-md-8 col-sm-8">
+                <ul class="list-inline">
+                    <li><a target="_blank" href="https://www.pasteur.fr/fr/les-credits">Cr&eacute;dit</a></li>
+                    <li><a target="_blank" href="https://www.pasteur.fr/fr/mentions-legales">Mentions l&eacute;gales</a></li>
+                    <li><a target="_blank" href="https://don.pasteur.fr/netful-presentation-association/site/pasteur/defaut/fr/v2/don/index.html">Faites un don</a></li>
+                    <li><a target="_blank" href="https://www.facebook.com/InstitutPasteur"><svg class="icon icon-facebook"><use xlink:href="#icon-facebook"></use></svg></a></li>
+                    <li><a target="_blank" href="https://twitter.com/aiderpasteur"><svg class="icon icon-twitter"><use xlink:href="#icon-twitter"></use></svg></a></li>
+                    <li><a target="_blank" href="https://www.linkedin.com/company/institut-pasteur"><svg class="icon icon-linkedin"><use xlink:href="#icon-linkedin"></use></svg></a></li>
+                    <li><a target="_blank" href="https://www.youtube.com/user/institutpasteurvideo"><svg class="icon icon-youtube3"><use xlink:href="#icon-youtube3"></use></svg></a></li>
+                    <li><a href="https://research.pasteur.fr/en/team/evolutionary-bioinformatics/">Evolutionary Biology Unit - USR 3756 IP - CNRS</a></li>
+                </ul>
+            </div>
+		<div class="col-md-4 col-sm-4 col-xs-12"> <a target="_blank" href="https://www.pasteur.fr"> <img alt="Institut Pasteur – Fondation d'utilité publique habilitée à recevoir des dons et des legs" src="/static/PasteurTheme/images/logo-footer.png"> </a>
+                </div> 
+                <div class="col-md-4 col-sm-8 col-xs-12 footer-nav"> </div> 
+            </div> 
+        </div> 
+    </div>
+    </div>
+
+      <svg display="none" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	   width="64px" height="64px">
+	<defs>
+	  <symbol id="icon-twitter" viewBox="0 0 951 1024">
+            <title>twitter</title>
+            <path class="foot-icon" d="M925.714 233.143q-38.286 56-92.571 95.429 0.571 8 0.571 24 0 74.286-21.714 148.286t-66 142-105.429 120.286-147.429 83.429-184.571 31.143q-154.857 0-283.429-82.857 20 2.286 44.571 2.286 128.571 0 229.143-78.857-60-1.143-107.429-36.857t-65.143-91.143q18.857 2.857 34.857 2.857 24.571 0 48.571-6.286-64-13.143-106-63.714t-42-117.429v-2.286q38.857 21.714 83.429 23.429-37.714-25.143-60-65.714t-22.286-88q0-50.286 25.143-93.143 69.143 85.143 168.286 136.286t212.286 56.857q-4.571-21.714-4.571-42.286 0-76.571 54-130.571t130.571-54q80 0 134.857 58.286 62.286-12 117.143-44.571-21.143 65.714-81.143 101.714 53.143-5.714 106.286-28.571z"></path>
+	  </symbol>
+	  <symbol id="icon-facebook" viewBox="0 0 585 1024">
+            <title>facebook</title>
+            <path class="foot-icon" d="M548 6.857v150.857h-89.714q-49.143 0-66.286 20.571t-17.143 61.714v108h167.429l-22.286 169.143h-145.143v433.714h-174.857v-433.714h-145.714v-169.143h145.714v-124.571q0-106.286 59.429-164.857t158.286-58.571q84 0 130.286 6.857z"></path>
+	  </symbol>
+
+	  <symbol id="icon-linkedin" viewBox="0 0 877.7142857142858 1024">
+            <title>linkedin</title>
+            <path class="path1" d="M199.429 357.143v566.286h-188.571v-566.286h188.571zM211.429 182.286q0.571 41.714-28.857 69.714t-77.429 28h-1.143q-46.857 0-75.429-28t-28.571-69.714q0-42.286 29.429-70t76.857-27.714 76 27.714 29.143 70zM877.714 598.857v324.571h-188v-302.857q0-60-23.143-94t-72.286-34q-36 0-60.286 19.714t-36.286 48.857q-6.286 17.143-6.286 46.286v316h-188q1.143-228 1.143-369.714t-0.571-169.143l-0.571-27.429h188v82.286h-1.143q11.429-18.286 23.429-32t32.286-29.714 49.714-24.857 65.429-8.857q97.714 0 157.143 64.857t59.429 190z"></path>
+	  </symbol>
+
+	  <symbol id="icon-youtube3" viewBox="0 0 1024 1024">
+            <title>youtube3</title>
+            <path class="path1" d="M293.188 0l-69.188 137.234-69.188-137.234h-88.248l124.71 217.314 0.726-0.43v167.116h64v-167.116l0.726 0.43 124.71-217.314z"></path>
+            <path class="path2" d="M480 128c17.346 0 32 14.654 32 32v128c0 17.346-14.654 32-32 32s-32-14.654-32-32v-128c0-17.346 14.654-32 32-32zM480 64c-52.8 0-96 43.2-96 96v128c0 52.8 43.2 96 96 96s96-43.2 96-96v-128c0-52.8-43.2-96-96-96v0z"></path>
+            <path class="path3" d="M768 64v251.968c-27.922 23.288-64 37.332-64-45.634v-206.334h-64v219.324h0.096c0.986 52.91 12.142 148.168 127.904 70.712v29.964h64v-320h-64z"></path>
+            <path class="path4" d="M864 704c-17.644 0-32 14.356-32 32v32h64v-32c0-17.644-14.356-32-32-32z"></path>
+            <path class="path5" d="M576 736v168c21.666 21.666 64 24 64-8s0-118 0-150-32-42-64-10z"></path>
+            <path class="path6" d="M1018.766 581.54c-2.792-36.862-16.046-66.942-39.778-90.244-23.726-23.298-54.080-35.994-91.068-38.080-69.784-3.478-229.452-5.216-369.716-5.216-140.266 0-311.294 1.738-381.078 5.216-36.986 2.086-67.342 14.782-91.068 38.080-23.728 23.302-36.988 53.382-39.778 90.244-4.188 75.116-6.28 102.352-6.28 139.91 0 37.56 2.092 93.894 6.28 169.012 2.792 36.862 16.050 66.944 39.778 90.244 23.726 23.298 54.082 35.992 91.068 38.080 69.782 3.476 240.81 5.214 381.078 5.214 140.266 0 299.934-1.738 369.716-5.214 36.988-2.088 67.342-14.782 91.068-38.080 23.73-23.3 36.986-53.382 39.778-90.244 3.49-62.598 5.234-118.934 5.234-169.012 0-50.076-1.744-77.314-5.234-139.91zM192 960h-64v-320h-64v-64h192v64h-64v320zM448 960h-64v-29.962c-121.666 68.294-126.918 2.198-127.904-50.712h-0.096v-175.326h64v176.334c0 38.666 36.078 34.924 64 11.634v-187.968h64v256zM704 895.086c0 66.892-68.504 86.402-128 34.39v30.524h-64v-384h64v104c64-64 128-40 128 24s0 121.172 0 191.086zM960 768v32h-128v64c0 17.644 14.356 32 32 32s32-14.356 32-32v-32h64v32c0 52.934-43.066 96-96 96s-96-43.066-96-96v-128c0-52.934 43.066-96 96-96s96 43.066 96 96v32z"></path>
+	  </symbol>
+	</defs>
+      </svg>
+  </body>
+</html>
+{{ end }}

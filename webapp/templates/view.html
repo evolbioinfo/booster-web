@@ -1,7 +1,14 @@
-<html>
-  <body>
-    ID: {{.Id}}<br/>
-    Status: {{.Status}}<br/>
-    Message: {{.Message}}<br/>
-  </body>
-</html>
+{{ define "title" }}
+Analysis {{.Id}}
+{{ end }}
+
+{{ define "content" }}
+<a href="/itol/{{.Id}}">Export to iTOL</a>
+<pre>
+    ID: {{.Id}}
+    Status: {{.Status}}
+    NTrees: {{.Nboot}}
+    Message: {{.Message}}
+</pre>
+
+{{ end }}
