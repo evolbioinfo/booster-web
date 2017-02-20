@@ -6,5 +6,24 @@ TBS - Transfert Bootstrap Support
 {{ end }}
 
 {{ define "content" }}
-  Welcome to TBS home page
+<div>
+<h2>WHAT IS TBS?</h2>
+<div style="float:right;">
+  <img src="/static/img/hiv.png" style="width:500px;"/>
+</div>
+
+<p>TBS is a new method designed to compute bootstrap branch supports. The main idea is that "classical" Felsenstein Bootstrap may fail to support deep branches of large phylogenies, because the exact same branches are not found in any bootstrap tree.</p><br/>
+
+<p>Let's consider a branch b of a reference tree. This branch defines a bipartition of the taxa. It's classical bootstrap support will be computed by counting all bootstrap trees that contain the exact same bipartition of the taxa. If a branch is "almost" (but never perfectly) found in all bootstrap trees, its bootstrap support will be 0.</p><br/>
+
+<p>For this reference branch b, instead of looking for the exact same branch in bootstrap trees, TBS will search the closest branch and compute a distance with the reference branch. This distance is in computed in terms of number of taxa that must be moved around the bipartition. This allows to compute a continuous score in the interval [0,1].</p><br/>
+
+<p>If you want to learn more about TBS, see the <a href="/help">help</a>.</p><br/>
+</div>
+
+<div style="">
+<h2>Run TBS</h2>
+<a class="btn btn-primary" href="/new" role="button">Run TBS</a>
+</div>
+
 {{ end }}

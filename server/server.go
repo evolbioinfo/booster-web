@@ -29,13 +29,15 @@ import (
 	"github.com/fredericlemoine/gotree/support"
 	"github.com/fredericlemoine/gotree/tree"
 	"github.com/fredericlemoine/sbsweb/io"
+	"github.com/fredericlemoine/sbsweb/static"
+	"github.com/fredericlemoine/sbsweb/templates"
 	"github.com/nu7hatch/gouuid"
 	"github.com/russross/blackfriday"
 )
 
 var templatePath string
 
-var templates map[string]*template.Template
+var templatesMap map[string]*template.Template
 
 // For read / Write to allanalyses map
 var lock = sync.RWMutex{}
@@ -51,18 +53,21 @@ const (
 )
 
 type Analysis struct {
-	Id         string         `json:"id"`        // sha256 sum of reftree and boottree files
-	refreader  *bufio.Reader  `json:"-"`         // reftree reader
-	bootreader *bufio.Reader  `json:"-"`         // bootstrap trees reader
-	reffile    multipart.File `json:"-"`         // reftree original file (to be able to close it)
-	bootfile   multipart.File `json:"-"`         // bootstrap original file (to be able to close it)
-	result     *tree.Tree     `json:"-"`         // resulting tree with supports
-	Status     int            `json:"status"`    // status code of the analysis
-	StatusStr  string         `json:"statusstr"` // status of the analysis (string)
-	Message    string         `json:"message"`   // error message if any
-	Nboot      int            `json:"nboot"`     // number of trees that have been processed
-	Newick     string         `json:"newick"`    // Newick representation of resulting tree
-	Collapsed  string         `json:"collapsed"` // Newick representation of collapsed resulting tree
+	Id           string         `json:"id"`           // sha256 sum of reftree and boottree files
+	refreader    *bufio.Reader  `json:"-"`            // reftree reader
+	bootreader   *bufio.Reader  `json:"-"`            // bootstrap trees reader
+	reffile      multipart.File `json:"-"`            // reftree original file (to be able to close it)
+	bootfile     multipart.File `json:"-"`            // bootstrap original file (to be able to close it)
+	result       *tree.Tree     `json:"-"`            // resulting tree with supports
+	Status       int            `json:"status"`       // status code of the analysis
+	StatusStr    string         `json:"statusstr"`    // status of the analysis (string)
+	Message      string         `json:"message"`      // error message if any
+	Nboot        int            `json:"nboot"`        // number of trees that have been processed
+	Newick       string         `json:"newick"`       // Newick representation of resulting tree
+	Collapsed    string         `json:"collapsed"`    // Newick representation of collapsed resulting tree
+	StartPending string         `json:startpending`   // Analysis queue time
+	StartRunning string         `json:"startrunning"` // Analysis Start running time
+	End          string         `json:"end"`          // Analysis End time
 }
 
 var queue chan *Analysis // queue of analyses
@@ -77,61 +82,61 @@ func InitServer(queuesize, nbrunner, timeout int) {
 
 	templatePath = "webapp" + string(os.PathSeparator) + "templates" + string(os.PathSeparator)
 
-	formtpl, err1 := Asset(templatePath + "inputform.html")
+	formtpl, err1 := templates.Asset(templatePath + "inputform.html")
 	if err1 != nil {
 		log.Fatal(err1)
 	}
-	errtpl, err2 := Asset(templatePath + "error.html")
+	errtpl, err2 := templates.Asset(templatePath + "error.html")
 	if err2 != nil {
 		log.Fatal(err2)
 	}
-	viewtpl, err3 := Asset(templatePath + "view.html")
+	viewtpl, err3 := templates.Asset(templatePath + "view.html")
 	if err3 != nil {
 		log.Fatal(err3)
 	}
-	indextpl, err4 := Asset(templatePath + "index.html")
+	indextpl, err4 := templates.Asset(templatePath + "index.html")
 	if err4 != nil {
 		log.Fatal(err4)
 	}
-	layouttpl, err5 := Asset(templatePath + "layout.html")
+	layouttpl, err5 := templates.Asset(templatePath + "layout.html")
 	if err5 != nil {
 		log.Fatal(err5)
 	}
-	helptpl, err6 := Asset(templatePath + "help.html")
+	helptpl, err6 := templates.Asset(templatePath + "help.html")
 	if err6 != nil {
 		log.Fatal(err6)
 	}
 
-	templates = make(map[string]*template.Template)
+	templatesMap = make(map[string]*template.Template)
 
 	if t, err := template.New("inputform").Parse(string(layouttpl) + string(formtpl)); err != nil {
 		log.Fatal(err)
 	} else {
-		templates["inputform"] = t
+		templatesMap["inputform"] = t
 	}
 
 	if t, err := template.New("error").Parse(string(layouttpl) + string(errtpl)); err != nil {
 		log.Fatal(err)
 	} else {
-		templates["error"] = t
+		templatesMap["error"] = t
 	}
 
 	if t, err := template.New("view").Parse(string(layouttpl) + string(viewtpl)); err != nil {
 		log.Fatal(err)
 	} else {
-		templates["view"] = t
+		templatesMap["view"] = t
 	}
 
 	if t, err := template.New("index").Parse(string(layouttpl) + string(indextpl)); err != nil {
 		log.Fatal(err)
 	} else {
-		templates["index"] = t
+		templatesMap["index"] = t
 	}
 
 	if t, err := template.New("help").Funcs(template.FuncMap{"markDown": markDowner}).Parse(string(layouttpl) + string(helptpl)); err != nil {
 		log.Fatal(err)
 	} else {
-		templates["help"] = t
+		templatesMap["help"] = t
 	}
 
 	/* HTML handlers */
@@ -146,7 +151,7 @@ func InitServer(queuesize, nbrunner, timeout int) {
 	http.HandleFunc("/api/analysis/", makeApiHandler(apiAnalysisHandler)) /* Handler for returning an analysis */
 
 	/* Static files handlers : js, css, etc. */
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(assetFS())))
+	http.Handle("/static/", http.FileServer(static.AssetFS()))
 	//http.Handle("/", http.RedirectHandler("/new/", http.StatusFound))
 
 	http.ListenAndServe(":8080", nil)
@@ -179,6 +184,7 @@ func initRunners(queuesize, nbrunner, timeout int) {
 				log.Print(fmt.Sprintf("CPU=%d | New analysis, id=%s", cpu, a.Id))
 
 				a.Status = STATUS_RUNNING
+				a.StartRunning = time.Now().Format(time.RFC1123)
 				a.StatusStr = StatusStr(a.Status)
 				supporter := &support.MastSupporter{}
 				finished := false
@@ -186,6 +192,8 @@ func initRunners(queuesize, nbrunner, timeout int) {
 				wg.Add(1)
 				go func() {
 					t, err := support.ComputeSupportFile(a.refreader, a.bootreader, os.Stderr, false, 1, supporter)
+					a.End = time.Now().Format(time.RFC1123)
+
 					if err != nil {
 						io.LogError(err)
 						a.Message = err.Error()
@@ -282,6 +290,9 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 		0,
 		"",
 		"",
+		time.Now().Format(time.RFC1123),
+		"",
+		"",
 	}
 
 	log.Print(fmt.Sprintf("New analysis submited | id=%s | Queue length is %d: ", a.Id, len(queue)))
@@ -294,6 +305,7 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 		//Channel full. Discarding value
 		a.Status = STATUS_CANCELED
 		a.StatusStr = StatusStr(a.Status)
+		a.End = time.Now().Format(time.RFC1123)
 		a.Message = "Computing queue is full, please try again in a few minutes"
 		a.reffile.Close()
 		a.bootfile.Close()

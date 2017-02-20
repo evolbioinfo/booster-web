@@ -15,6 +15,7 @@ import (
 
 	"github.com/fredericlemoine/gotree/upload"
 	"github.com/fredericlemoine/sbsweb/io"
+	"github.com/fredericlemoine/sbsweb/templates"
 )
 
 type ErrorInfo struct {
@@ -50,7 +51,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func helpHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	helpmd, err := Asset(templatePath + "help.md")
+	helpmd, err := templates.Asset(templatePath + "help.md")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -184,6 +185,9 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 			0,
 			"",
 			"",
+			"",
+			"",
+			"",
 		}
 	}
 	/* We collapse lowly supported branches */
@@ -238,7 +242,7 @@ func GetFormFileReader(f multipart.File, h *multipart.FileHeader) (*bufio.Reader
 }
 
 func getTemplate(name string) (*template.Template, error) {
-	t, ok := templates[name]
+	t, ok := templatesMap[name]
 	if !ok {
 		return nil, errors.New("No template named " + name)
 	}
