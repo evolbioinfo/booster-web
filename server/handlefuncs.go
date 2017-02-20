@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/fredericlemoine/gotree/upload"
@@ -144,7 +145,8 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
+// 0<=Collapse<=100
+func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64) {
 	w.Header().Set("Content-Type", "application/json")
 	var a *Analysis
 	a, ok := getAnalysis(id)
@@ -159,7 +161,14 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
 			"Analysis does not exist",
 			0,
 			"",
+			"",
 		}
+	}
+	/* We collapse lowly supported branches */
+	if collapse > 0 {
+		t := a.result.Clone()
+		t.CollapseLowSupport(collapse / 100)
+		a.Collapsed = t.Newick()
 	}
 	json.NewEncoder(w).Encode(a)
 }
@@ -177,16 +186,17 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
-var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)$")
+var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)/([0-9]+)$")
 
-func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string, float64)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validApiPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return
 		}
-		fn(w, r, m[2])
+		f, _ := strconv.ParseFloat(m[3], 64)
+		fn(w, r, m[2], f)
 	}
 }
 

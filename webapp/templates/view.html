@@ -9,14 +9,35 @@ Analysis {{.Id}}
 {{ end }}
 
 {{ define "content" }}
-<a href="/itol/{{.Id}}">Export to iTOL</a>
-<pre>
-    ID: {{.Id}}
-    Status: {{.Status}}
-    NTrees: {{.Nboot}}
-    Message: {{.Message}}
-</pre>
+<div class="panel panel-default">
+  <div class="panel-heading">Run Information</div>
+  <div class="panel-body">
+    <pre>
+      ID: {{.Id}}
+      Status: {{.Status}}
+      NTrees: {{.Nboot}}
+      Message: {{.Message}}
+    </pre>
+  </div>
+</div>
 
-<div id="phylocanvas" data-id="{{.Id}}"></div>
+{{if (or (eq .Status 2) (eq .Status 5)) }}
+<div class="panel panel-default">
+  <div class="panel-heading">Downloads</div>
+  <div class="panel-body">
+    <a class="label label-warning" target="_blank" href="/itol/{{.Id}}">Export to iTOL</a>
+    <a class="label label-default" onclick="downloadTree({{.Id}})">Download newick</a>
+  </div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading">Tree</div>
+  <div class="panel-body">
+    <div>Bootstrap support collapse cutoff: <span id="collapse">80</span></div><br/>
+    <div id="slider"></div><br/>
+    <div id="phylocanvas" data-id="{{.Id}}"></div>
+  </div>
+</div>
+{{ end }}
 
 {{ end }}

@@ -50,16 +50,17 @@ const (
 )
 
 type Analysis struct {
-	Id         string         `json:"id"`      // sha256 sum of reftree and boottree files
-	refreader  *bufio.Reader  `json:"-"`       // reftree reader
-	bootreader *bufio.Reader  `json:"-"`       // bootstrap trees reader
-	reffile    multipart.File `json:"-"`       // reftree original file (to be able to close it)
-	bootfile   multipart.File `json:"-"`       // bootstrap original file (to be able to close it)
-	result     *tree.Tree     `json:"-"`       // resulting tree with supports
-	Status     int            `json:"status"`  // status of the analysis
-	Message    string         `json:"message"` // error message if any
-	Nboot      int            `json:"nboot"`   // number of trees that have been processed
-	Newick     string         `json:"newick"`  // Newick representation of resulting tree
+	Id         string         `json:"id"`        // sha256 sum of reftree and boottree files
+	refreader  *bufio.Reader  `json:"-"`         // reftree reader
+	bootreader *bufio.Reader  `json:"-"`         // bootstrap trees reader
+	reffile    multipart.File `json:"-"`         // reftree original file (to be able to close it)
+	bootfile   multipart.File `json:"-"`         // bootstrap original file (to be able to close it)
+	result     *tree.Tree     `json:"-"`         // resulting tree with supports
+	Status     int            `json:"status"`    // status of the analysis
+	Message    string         `json:"message"`   // error message if any
+	Nboot      int            `json:"nboot"`     // number of trees that have been processed
+	Newick     string         `json:"newick"`    // Newick representation of resulting tree
+	Collapsed  string         `json:"collapsed"` // Newick representation of collapsed resulting tree
 }
 
 var queue chan *Analysis // queue of analyses
@@ -184,6 +185,7 @@ func initRunners(queuesize, nbrunner, timeout int) {
 						t.ClearPvalues()
 						a.result = t
 						a.Newick = t.Newick()
+						a.Collapsed = a.Newick
 						a.Message = "Finished"
 					}
 					a.reffile.Close()
@@ -260,6 +262,7 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 		STATUS_PENDING,
 		"",
 		0,
+		"",
 		"",
 	}
 
