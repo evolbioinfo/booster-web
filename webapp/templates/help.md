@@ -24,7 +24,7 @@ The only thing to do is downloading the latest release of tbs-web on [Github](ht
 
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
-## <a name"commandline">Computing TBS via command line</a>
+## <a name="commandline"></a>Computing TBS via command line
 TBS has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
 
     Usage: ./mast_like_supports -i <tree file> -b <bootstrap prefix or file> [-r <# rand shufling> -n <normalization> -@ <cpus> -s <seed> -S <stat file> -o <output tree> -v]
