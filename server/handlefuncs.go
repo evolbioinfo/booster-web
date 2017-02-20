@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -143,11 +144,44 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
+	w.Header().Set("Content-Type", "application/json")
+	var a *Analysis
+	a, ok := getAnalysis(id)
+	if !ok {
+		a = &Analysis{"none",
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+			STATUS_NOT_EXISTS,
+			"Analysis does not exist",
+			0,
+			"",
+		}
+	}
+	json.NewEncoder(w).Encode(a)
+}
+
 var validPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
+		if m == nil {
+			http.NotFound(w, r)
+			return
+		}
+		fn(w, r, m[2])
+	}
+}
+
+var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)$")
+
+func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := validApiPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return

@@ -2,6 +2,9 @@
 {{.Name}}
 {{end}}
 
+{{ define "libs" }}
+{{ end }}
+
 {{ define "content"}}
     <form action="/run" method="POST" enctype="multipart/form-data">
       Reference Tree (.gz or not): <input type="file" name="reftree" /><br/>

@@ -40,24 +40,26 @@ var templates map[string]*template.Template
 var lock = sync.RWMutex{}
 
 const (
-	STATUS_PENDING  = 0
-	STATUS_RUNNING  = 1
-	STATUS_FINISHED = 2
-	STATUS_ERROR    = 3
-	STATUS_CANCELED = 4
-	STATUS_TIMEOUT  = 5
+	STATUS_NOT_EXISTS = -1
+	STATUS_PENDING    = 0
+	STATUS_RUNNING    = 1
+	STATUS_FINISHED   = 2
+	STATUS_ERROR      = 3
+	STATUS_CANCELED   = 4
+	STATUS_TIMEOUT    = 5
 )
 
 type Analysis struct {
-	Id         string         // sha256 sum of reftree and boottree files
-	refreader  *bufio.Reader  // reftree reader
-	bootreader *bufio.Reader  // bootstrap trees reader
-	reffile    multipart.File // reftree original file (to be able to close it)
-	bootfile   multipart.File // bootstrap original file (to be able to close it)
-	result     *tree.Tree     // resulting tree with supports
-	Status     int            // status of the analysis
-	Message    string         // error message if any
-	Nboot      int            // number of trees that have been processed
+	Id         string         `json:"id"`      // sha256 sum of reftree and boottree files
+	refreader  *bufio.Reader  `json:"-"`       // reftree reader
+	bootreader *bufio.Reader  `json:"-"`       // bootstrap trees reader
+	reffile    multipart.File `json:"-"`       // reftree original file (to be able to close it)
+	bootfile   multipart.File `json:"-"`       // bootstrap original file (to be able to close it)
+	result     *tree.Tree     `json:"-"`       // resulting tree with supports
+	Status     int            `json:"status"`  // status of the analysis
+	Message    string         `json:"message"` // error message if any
+	Nboot      int            `json:"nboot"`   // number of trees that have been processed
+	Newick     string         `json:"newick"`  // Newick representation of resulting tree
 }
 
 var queue chan *Analysis // queue of analyses
@@ -126,6 +128,9 @@ func InitServer(queuesize, nbrunner, timeout int) {
 	http.HandleFunc("/itol/", makeHandler(itolHandler)) /* Handler for uploading tree to itol */
 	http.HandleFunc("/", indexHandler)                  /* Home Page*/
 
+	/* Api handlers */
+	http.HandleFunc("/api/analysis/", makeApiHandler(apiAnalysisHandler)) /* Handler for returning an analysis */
+
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(assetFS())))
 	//http.Handle("/", http.RedirectHandler("/new/", http.StatusFound))
@@ -178,7 +183,8 @@ func initRunners(queuesize, nbrunner, timeout int) {
 						}
 						t.ClearPvalues()
 						a.result = t
-						a.Message = t.Newick()
+						a.Newick = t.Newick()
+						a.Message = "Finished"
 					}
 					a.reffile.Close()
 					a.bootfile.Close()
@@ -254,6 +260,7 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 		STATUS_PENDING,
 		"",
 		0,
+		"",
 	}
 
 	log.Print(fmt.Sprintf("New analysis submited | id=%s | Queue length is %d: ", a.Id, len(queue)))

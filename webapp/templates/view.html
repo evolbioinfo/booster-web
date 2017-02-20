@@ -2,6 +2,12 @@
 Analysis {{.Id}}
 {{ end }}
 
+{{ define "libs" }}
+<!-- <script type="application/javascript" src="/static/modules/phylocanvas-2.8.1/dist/phylocanvas.min.js"></script> -->
+<script type="application/javascript" src="https://cdn.rawgit.com/phylocanvas/phylocanvas-quickstart/v2.8.0/phylocanvas-quickstart.js"></script>
+<script src="/static/js/phylo.js"></script>
+{{ end }}
+
 {{ define "content" }}
 <a href="/itol/{{.Id}}">Export to iTOL</a>
 <pre>
@@ -10,5 +16,7 @@ Analysis {{.Id}}
     NTrees: {{.Nboot}}
     Message: {{.Message}}
 </pre>
+
+<div id="phylocanvas" data-id="{{.Id}}"></div>
 
 {{ end }}
