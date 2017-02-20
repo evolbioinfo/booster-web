@@ -21,6 +21,10 @@ type ErrorInfo struct {
 	Message string
 }
 
+type MarkDownPage struct {
+	Md string
+}
+
 func errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "text/html")
 	if t, err2 := getTemplate("error"); err2 != nil {
@@ -39,6 +43,23 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		if err := t.ExecuteTemplate(w, "layout", info); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func helpHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	helpmd, err := Asset(templatePath + "help.md")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if t, err := getTemplate("help"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		md := MarkDownPage{string(helpmd)}
+		if err := t.ExecuteTemplate(w, "layout", md); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}

@@ -30,6 +30,7 @@ import (
 	"github.com/fredericlemoine/gotree/tree"
 	"github.com/fredericlemoine/sbsweb/io"
 	"github.com/nu7hatch/gouuid"
+	"github.com/russross/blackfriday"
 )
 
 var templatePath string
@@ -96,6 +97,10 @@ func InitServer(queuesize, nbrunner, timeout int) {
 	if err5 != nil {
 		log.Fatal(err5)
 	}
+	helptpl, err6 := Asset(templatePath + "help.html")
+	if err6 != nil {
+		log.Fatal(err6)
+	}
 
 	templates = make(map[string]*template.Template)
 
@@ -123,9 +128,16 @@ func InitServer(queuesize, nbrunner, timeout int) {
 		templates["index"] = t
 	}
 
+	if t, err := template.New("help").Funcs(template.FuncMap{"markDown": markDowner}).Parse(string(layouttpl) + string(helptpl)); err != nil {
+		log.Fatal(err)
+	} else {
+		templates["help"] = t
+	}
+
 	/* HTML handlers */
 	http.HandleFunc("/new/", newHandler)                /* Handler for input form */
 	http.HandleFunc("/run", runHandler)                 /* Handler for running a new analysis */
+	http.HandleFunc("/help", helpHandler)               /* Handler for the help page */
 	http.HandleFunc("/view/", makeHandler(viewHandler)) /* Handler for viewing analysis results */
 	http.HandleFunc("/itol/", makeHandler(itolHandler)) /* Handler for uploading tree to itol */
 	http.HandleFunc("/", indexHandler)                  /* Home Page*/
@@ -316,4 +328,9 @@ func StatusStr(status int) string {
 	default:
 		return "Unknown"
 	}
+}
+
+func markDowner(args ...interface{}) template.HTML {
+	s := blackfriday.MarkdownCommon([]byte(fmt.Sprintf("%s", args...)))
+	return template.HTML(s)
 }
