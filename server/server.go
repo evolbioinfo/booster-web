@@ -56,7 +56,8 @@ type Analysis struct {
 	reffile    multipart.File `json:"-"`         // reftree original file (to be able to close it)
 	bootfile   multipart.File `json:"-"`         // bootstrap original file (to be able to close it)
 	result     *tree.Tree     `json:"-"`         // resulting tree with supports
-	Status     int            `json:"status"`    // status of the analysis
+	Status     int            `json:"status"`    // status code of the analysis
+	StatusStr  string         `json:"statusstr"` // status of the analysis (string)
 	Message    string         `json:"message"`   // error message if any
 	Nboot      int            `json:"nboot"`     // number of trees that have been processed
 	Newick     string         `json:"newick"`    // Newick representation of resulting tree
@@ -166,6 +167,7 @@ func initRunners(queuesize, nbrunner, timeout int) {
 				log.Print(fmt.Sprintf("CPU=%d | New analysis, id=%s", cpu, a.Id))
 
 				a.Status = STATUS_RUNNING
+				a.StatusStr = StatusStr(a.Status)
 				supporter := &support.MastSupporter{}
 				finished := false
 				var wg sync.WaitGroup // For waiting end of step computation
@@ -176,11 +178,14 @@ func initRunners(queuesize, nbrunner, timeout int) {
 						io.LogError(err)
 						a.Message = err.Error()
 						a.Status = STATUS_ERROR
+						a.StatusStr = StatusStr(a.Status)
 					} else {
 						if supporter.Canceled() {
 							a.Status = STATUS_TIMEOUT
+							a.StatusStr = StatusStr(a.Status)
 						} else {
 							a.Status = STATUS_FINISHED
+							a.StatusStr = StatusStr(a.Status)
 						}
 						t.ClearPvalues()
 						a.result = t
@@ -260,6 +265,7 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 		bootfile,
 		nil,
 		STATUS_PENDING,
+		StatusStr(STATUS_PENDING),
 		"",
 		0,
 		"",
@@ -275,6 +281,7 @@ func newAnalysis(refreader, bootreader *bufio.Reader, reffile, bootfile multipar
 	default:
 		//Channel full. Discarding value
 		a.Status = STATUS_CANCELED
+		a.StatusStr = StatusStr(a.Status)
 		a.Message = "Computing queue is full, please try again in a few minutes"
 		a.reffile.Close()
 		a.bootfile.Close()
@@ -288,4 +295,25 @@ func getAnalysis(id string) (a *Analysis, ok bool) {
 
 	a, ok = allanalyses[id]
 	return
+}
+
+func StatusStr(status int) string {
+	switch status {
+	case STATUS_NOT_EXISTS:
+		return "Analysis does not exist"
+	case STATUS_PENDING:
+		return "Pending"
+	case STATUS_RUNNING:
+		return "Running"
+	case STATUS_FINISHED:
+		return "Finished"
+	case STATUS_ERROR:
+		return "Error"
+	case STATUS_CANCELED:
+		return "Canceled"
+	case STATUS_TIMEOUT:
+		return "Timeout"
+	default:
+		return "Unknown"
+	}
 }

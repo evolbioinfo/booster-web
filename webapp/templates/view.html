@@ -12,12 +12,12 @@ Analysis {{.Id}}
 <div class="panel panel-default">
   <div class="panel-heading">Run Information</div>
   <div class="panel-body">
-    <pre>
-      ID: {{.Id}}
-      Status: {{.Status}}
-      NTrees: {{.Nboot}}
-      Message: {{.Message}}
-    </pre>
+    <ul>
+      <li>ID: {{.Id}}</li>
+      <li>Run status: {{.StatusStr}}</li>
+      <li>#Bootstrap trees: {{.Nboot}}</li>
+      <li>Output message: {{.Message}}</li>
+    </ul>
   </div>
 </div>
 
