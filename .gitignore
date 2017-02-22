@@ -1,1 +1,4 @@
 *~
+static/bindata_assetfs.go
+templates/bindata_templates.go
+booster-web

@@ -28,9 +28,9 @@ import (
 
 	"github.com/fredericlemoine/gotree/support"
 	"github.com/fredericlemoine/gotree/tree"
-	"github.com/fredericlemoine/sbsweb/io"
-	"github.com/fredericlemoine/sbsweb/static"
-	"github.com/fredericlemoine/sbsweb/templates"
+	"github.com/fredericlemoine/booster-web/io"
+	"github.com/fredericlemoine/booster-web/static"
+	"github.com/fredericlemoine/booster-web/templates"
 	"github.com/nu7hatch/gouuid"
 	"github.com/russross/blackfriday"
 )

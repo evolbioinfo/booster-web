@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/fredericlemoine/gotree/upload"
-	"github.com/fredericlemoine/sbsweb/io"
-	"github.com/fredericlemoine/sbsweb/templates"
+	"github.com/fredericlemoine/booster-web/io"
+	"github.com/fredericlemoine/booster-web/templates"
 )
 
 type ErrorInfo struct {

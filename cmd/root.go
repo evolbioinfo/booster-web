@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fredericlemoine/sbsweb/server"
+	"github.com/fredericlemoine/booster-web/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,7 +28,7 @@ var cfgFile string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "sbsweb",
+	Use:   "booster-web",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -59,7 +59,7 @@ func init() {
 	// Cobra supports Persistent Flags, which, if defined here,
 	// will be global for your application.
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sbsweb.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.booster-web.yaml)")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -71,9 +71,9 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".sbsweb") // name of config file (without extension)
-	viper.AddConfigPath("$HOME")   // adding home directory as first search path
-	viper.AutomaticEnv()           // read in environment variables that match
+	viper.SetConfigName(".booster-web") // name of config file (without extension)
+	viper.AddConfigPath("$HOME")        // adding home directory as first search path
+	viper.AutomaticEnv()                // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

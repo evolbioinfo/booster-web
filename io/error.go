@@ -22,6 +22,6 @@ func ExitWithMessage(err error) {
 
 func LogError(err error) {
 	_, fn, line, _ := runtime.Caller(1)
-	name := strings.Split(fn, "/sbsweb/")[1]
+	name := strings.Split(fn, "/booster-web/")[1]
 	log.Printf("[Error] in %s (line %d), message: %v\n", name, line, err)
 }

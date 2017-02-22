@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/fredericlemoine/sbsweb/cmd"
+import "github.com/fredericlemoine/booster-web/cmd"
 
 func main() {
 	cmd.Execute()
