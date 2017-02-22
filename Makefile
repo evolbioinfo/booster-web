@@ -11,7 +11,7 @@ build:
 	mv bindata_assetfs.go static
 	mv bindata_templates.go templates
 
-	${GO_EXECUTABLE} build -o sbsweb -ldflags "-X github.com/fredericlemoine/sbsweb/cmd.Version=${VERSION}" github.com/fredericlemoine/sbsweb
+	${GO_EXECUTABLE} build -o booster-web -ldflags "-X github.com/fredericlemoine/booster-web/cmd.Version=${VERSION}" github.com/fredericlemoine/booster-web
 
 install:
-	${GO_EXECUTABLE} install -ldflags "-X github.com/fredericlemoine/sbsweb/cmd.Version=${VERSION}" github.com/fredericlemoine/sbsweb
+	${GO_EXECUTABLE} install -ldflags "-X github.com/fredericlemoine/booster-web/cmd.Version=${VERSION}" github.com/fredericlemoine/booster-web
