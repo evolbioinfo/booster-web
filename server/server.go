@@ -26,11 +26,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fredericlemoine/gotree/support"
-	"github.com/fredericlemoine/gotree/tree"
 	"github.com/fredericlemoine/booster-web/io"
 	"github.com/fredericlemoine/booster-web/static"
 	"github.com/fredericlemoine/booster-web/templates"
+	"github.com/fredericlemoine/gotree/support"
+	"github.com/fredericlemoine/gotree/tree"
 	"github.com/nu7hatch/gouuid"
 	"github.com/russross/blackfriday"
 )
@@ -186,7 +186,7 @@ func initRunners(queuesize, nbrunner, timeout int) {
 				a.Status = STATUS_RUNNING
 				a.StartRunning = time.Now().Format(time.RFC1123)
 				a.StatusStr = StatusStr(a.Status)
-				supporter := &support.MastSupporter{}
+				supporter := &support.BoosterSupporter{}
 				finished := false
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
