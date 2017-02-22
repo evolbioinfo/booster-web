@@ -1,8 +1,8 @@
-TBS is a new way of computing bootstrap supports in large phylogenies.
+BOOSTER is a new way of computing bootstrap supports in large phylogenies.
 
-## Computing TBS via the web interface
+## Computing transfer supports via the web interface
 
-You can submit TBS jobs on the [run](/run) page of this web interface. Only two inputs are required:
+You can submit BOOSTER jobs on the [run](/run) page of this web interface. Only two inputs are required:
 
 1. A reference tree file in newick format (may be gzipped)
 2. A bootstrap tree file containing all the bootstrap trees (may be gzipped)
@@ -20,12 +20,12 @@ Clicking on the "run" button will launch the analysis and take you to the result
 ## Installing a local version of the web interface
 
 The web interface has been developped in Go, and in thus executable on any platform (Linux, MacOS, and Windows).
-The only thing to do is downloading the latest release of tbs-web on [Github](https://github.com/fredericlemoine/tbs-web/releases), and run it by clinking the executable.
+The only thing to do is downloading the latest release of Booster-web on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clinking the executable.
 
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
-## <a name="commandline"></a>Computing TBS via command line
-TBS has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
+## <a name="commandline"></a>Computing transfer supports via command line
+BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
 
     Usage: ./mast_like_supports -i <tree file> -b <bootstrap prefix or file> [-r <# rand shufling> -n <normalization> -@ <cpus> -s <seed> -S <stat file> -o <output tree> -v]
     Options:
@@ -50,4 +50,4 @@ All information for installation is available on the github page.
 
 
 ## Supplementary materials
-All data and workflows described in the article are available on [Github](https://github.com/fredericlemoine/tbs-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
+All data and workflows described in the article are available on [Github](https://github.com/fredericlemoine/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
