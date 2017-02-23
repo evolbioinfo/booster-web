@@ -13,9 +13,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fredericlemoine/gotree/upload"
 	"github.com/fredericlemoine/booster-web/io"
+	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/templates"
+	"github.com/fredericlemoine/gotree/io/newick"
+	"github.com/fredericlemoine/gotree/upload"
 )
 
 type ErrorInfo struct {
@@ -71,11 +73,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	//nw := t.Newick()
 	//w.Write([]byte(nw))
 
-	a, ok := getAnalysis(id)
-	if !ok {
-		existerr := errors.New("Analysis does not exist")
-		io.LogError(existerr)
-		errorHandler(w, r, existerr)
+	a, err := getAnalysis(id)
+	if err != nil {
+		io.LogError(err)
+		errorHandler(w, r, err)
 		return
 	}
 
@@ -89,14 +90,13 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
-	a, ok := getAnalysis(id)
-	if !ok {
-		existerr := errors.New("Analysis does not exist")
-		io.LogError(existerr)
-		errorHandler(w, r, existerr)
+	a, err := getAnalysis(id)
+	if err != nil {
+		io.LogError(err)
+		errorHandler(w, r, err)
 		return
 	}
-	if a.Status == STATUS_FINISHED || a.Status == STATUS_TIMEOUT {
+	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
 		url, _, err := upld.Upload(fmt.Sprintf("%d", a.Id), a.result)
 		if err != nil {
@@ -170,20 +170,17 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 // 0<=Collapse<=100
 func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64) {
 	w.Header().Set("Content-Type", "application/json")
-	var a *Analysis
-	a, ok := getAnalysis(id)
-	if !ok {
-		a = &Analysis{"none",
-			nil,
-			nil,
-			nil,
-			nil,
-			nil,
-			STATUS_NOT_EXISTS,
-			StatusStr(STATUS_NOT_EXISTS),
-			"This analysis does not exist",
-			0,
+	var a *model.Analysis
+	a, err := getAnalysis(id)
+	if err != nil {
+		a = &model.Analysis{"none",
 			"",
+			"",
+			"",
+			model.STATUS_NOT_EXISTS,
+			model.StatusStr(model.STATUS_NOT_EXISTS),
+			err.Error(),
+			0,
 			"",
 			"",
 			"",
@@ -192,8 +189,12 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	}
 	/* We collapse lowly supported branches */
 	if collapse > 0 {
-		t := a.result.Clone()
-		t.CollapseLowSupport(collapse / 100)
+		t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+		if err == nil {
+			t.CollapseLowSupport(collapse / 100)
+		} else {
+			a.Message = "Cannot collapse branches : " + err.Error()
+		}
 		a.Collapsed = t.Newick()
 	}
 	json.NewEncoder(w).Encode(a)
