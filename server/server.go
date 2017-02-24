@@ -42,10 +42,12 @@ import (
 )
 
 const (
-	DATABASE_TYPE_DEFAULT     = "memory"
-	RUNNERS_QUEUESIZE_DEFAULT = 10
-	RUNNERS_NBRUNNERS_DEFAULT = 1
-	RUNNERS_TIMEOUT_DEFAULT   = 0 // unlimited
+	DATABASE_TYPE_DEFAULT      = "memory"
+	RUNNERS_QUEUESIZE_DEFAULT  = 10
+	RUNNERS_NBRUNNERS_DEFAULT  = 1
+	RUNNERS_TIMEOUT_DEFAULT    = 0 // unlimited
+	RUNNERS_JOBTHREADS_DEFAULT = 1
+	HTTP_PORT_DEFAULT          = 8080 // Port 8080
 )
 
 var templatePath string
@@ -153,7 +155,12 @@ func InitServer(cfg config.Provider) {
 	http.Handle("/static/", http.FileServer(static.AssetFS()))
 	//http.Handle("/", http.RedirectHandler("/new/", http.StatusFound))
 
-	http.ListenAndServe(":8080", nil)
+	port := cfg.GetInt("http.port")
+	if port == 0 {
+		port = HTTP_PORT_DEFAULT
+	}
+	log.Print(fmt.Sprintf("HTTP port: %d", port))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 func initRunners(cfg config.Provider) {
@@ -163,6 +170,10 @@ func initRunners(cfg config.Provider) {
 	queuesize := cfg.GetInt("runners.queuesize")
 	timeout := cfg.GetInt("runners.timeout")
 	jobthreads := cfg.GetInt("runners.jobthreads")
+
+	if jobthreads == 0 {
+		jobthreads = RUNNERS_JOBTHREADS_DEFAULT
+	}
 
 	if nbrunners == 0 {
 		nbrunners = RUNNERS_NBRUNNERS_DEFAULT
@@ -312,7 +323,8 @@ func initDB(cfg config.Provider) {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatal("database type does not exist: " + dbtype)
+		db = database.NewMemoryBoosterWebDB()
+		log.Print("Database type not valid, using default: " + DATABASE_TYPE_DEFAULT)
 	}
 
 	if err := db.InitDatabase(); err != nil {
