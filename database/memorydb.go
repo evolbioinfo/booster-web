@@ -42,8 +42,8 @@ func (db *MemoryBoosterWebDB) GetAnalysis(id string) (a *model.Analysis, err err
 
 /* Update an anlysis or insert it if it does not exist */
 func (db *MemoryBoosterWebDB) UpdateAnalysis(a *model.Analysis) error {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	log.Print("In memory database : Insert or update analysis " + a.Id)
 	db.allanalyses[a.Id] = a
 	return nil
