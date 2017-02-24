@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"database/sql"
 	"github.com/fredericlemoine/booster-web/model"
@@ -14,6 +15,7 @@ type MySQLBoosterwebDB struct {
 	pass   string
 	url    string
 	dbname string
+	port   int
 	db     *sql.DB
 }
 
@@ -31,25 +33,31 @@ type dbanalysis struct {
 }
 
 /* Returns a new database */
-func NewMySQLBoosterwebDB(login, pass, url, dbname string) *MySQLBoosterwebDB {
+func NewMySQLBoosterwebDB(login, pass, url, dbname string, port int) *MySQLBoosterwebDB {
+	log.Print("New mysql database")
 	return &MySQLBoosterwebDB{
 		login,
 		pass,
 		url,
 		dbname,
+		port,
 		nil,
 	}
 }
 
 func (db *MySQLBoosterwebDB) Connect() error {
-	d, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s", db.login, db.pass, db.url, db.dbname))
+	log.Print("Connect mysql database")
+	d, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db.login, db.pass, db.url, db.port, db.dbname))
 	if err != nil {
+		log.Print(err)
+	} else {
 		db.db = d
 	}
 	return err
 }
 
 func (db *MySQLBoosterwebDB) Disconnect() error {
+	log.Print("Disconnect mysql database")
 	if db.db == nil {
 		return errors.New("Database not opened")
 	}
@@ -60,13 +68,15 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT * FROM analysis WHERE id = $1", id)
+	rows, err := db.db.Query("SELECT * FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
-	dban := &dbanalysis{}
+	dban := dbanalysis{}
 	if rows.Next() {
-		if err := rows.Scan(&dban); err != nil {
+		if err := rows.Scan(&dban.id, &dban.reffile, &dban.bootfile, &dban.result,
+			&dban.status, &dban.message, &dban.nboot, &dban.startPending,
+			&dban.startRunning, &dban.end); err != nil {
 			return nil, err
 		}
 	} else {
@@ -97,10 +107,17 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 
 /* Update an anlysis or insert it if it does not exist */
 func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
+	log.Print("Mysql database : Insert or update analysis " + a.Id)
+
 	if db.db == nil {
 		return errors.New("Database not opened")
 	}
-	query := "INSERT INTO analysis (id, reffile, bootfile, results, status, message, nboot, startpending, startrunning , end) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON DUPLICATE KEY UPDATE"
+	query := `INSERT INTO analysis 
+                    (id, reffile, bootfile, results, status, message, nboot, startpending, startrunning , end) 
+                  VALUES (?,?,?,?,?,?,?,?,?,?) 
+                  ON DUPLICATE KEY UPDATE results=values(results), status=values(status), 
+                                          message=values(message), nboot=values(nboot), 
+                                          startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
 	_, err := db.db.Exec(
 		query,
 		a.Id,
@@ -119,7 +136,8 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 
 /* Check if table is present otherwise creates it */
 func (db *MySQLBoosterwebDB) InitDatabase() error {
+	log.Print("Initializing mysql Database")
 	_, err := db.db.Exec(
-		"CREATE TABLE analysis if not exists (id varchar(40) not null primary key, reffile blob, bootfile blob, results blob, status int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
+		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results blob, status int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
 	return err
 }

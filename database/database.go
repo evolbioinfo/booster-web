@@ -9,4 +9,5 @@ type BoosterwebDB interface {
 	UpdateAnalysis(*model.Analysis) error
 	Connect() error
 	Disconnect() error
+	InitDatabase() error
 }

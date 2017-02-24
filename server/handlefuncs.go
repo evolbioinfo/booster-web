@@ -1,13 +1,10 @@
 package server
 
 import (
-	"bufio"
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"mime/multipart"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -98,7 +95,7 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
-		url, _, err := upld.Upload(fmt.Sprintf("%d", a.Id), a.result)
+		url, _, err := upld.UploadNewick(fmt.Sprintf("%d", a.Id), a.Result)
 		if err != nil {
 			io.LogError(err)
 			errorHandler(w, r, err)
@@ -148,23 +145,12 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreader, referr := GetFormFileReader(reftree, refhandler)
-	if referr != nil {
-		io.LogError(referr)
-		errorHandler(w, r, referr)
-		return
-	}
+	a := newAnalysis(reftree, refhandler, boottree, boothandler)
 
-	bootreader, booterr := GetFormFileReader(boottree, boothandler)
-	if booterr != nil {
-		io.LogError(booterr)
-		errorHandler(w, r, booterr)
-		return
-	}
+	reftree.Close()
+	boottree.Close()
 
-	a := newAnalysis(refreader, bootreader, reftree, boottree)
 	http.Redirect(w, r, "/view/"+a.Id, http.StatusSeeOther)
-
 }
 
 // 0<=Collapse<=100
@@ -225,21 +211,6 @@ func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string, float64)
 		f, _ := strconv.ParseFloat(m[3], 64)
 		fn(w, r, m[2], f)
 	}
-}
-
-/* Returns the opened file and a buffered reader (gzip or not) for the file */
-func GetFormFileReader(f multipart.File, h *multipart.FileHeader) (*bufio.Reader, error) {
-	var reader *bufio.Reader
-	if strings.HasSuffix(h.Filename, ".gz") {
-		if gr, err := gzip.NewReader(f); err != nil {
-			return nil, err
-		} else {
-			reader = bufio.NewReader(gr)
-		}
-	} else {
-		reader = bufio.NewReader(f)
-	}
-	return reader, nil
 }
 
 func getTemplate(name string) (*template.Template, error) {

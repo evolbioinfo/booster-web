@@ -16,10 +16,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/fredericlemoine/booster-web/server"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -39,7 +39,7 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		server.InitServer(2, 2, 10)
+		server.InitServer(viper.GetViper())
 	},
 }
 
@@ -77,6 +77,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		log.Print("Using config file:", viper.ConfigFileUsed())
 	}
 }
