@@ -27,7 +27,7 @@ Then open a web browser to the url [http://localhost:8080](http://localhost:8080
 ## <a name="commandline"></a>Computing transfer supports via command line
 BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
 
-    Usage: ./mast_like_supports -i <tree file> -b <bootstrap prefix or file> [-r <# rand shufling> -n <normalization> -@ <cpus> -s <seed> -S <stat file> -o <output tree> -v]
+    Usage: ./booster -i <tree file> -b <bootstrap prefix or file> [-r <# rand shufling> -n <normalization> -@ <cpus> -s <seed> -S <stat file> -o <output tree> -v]
     Options:
       -i : Input tree file
       -b : Bootstrap prefix (e.g. boot_) or file containing several bootstrap trees
@@ -37,9 +37,9 @@ BOOSTER has initially been implemented in C, and is available on [Github](https:
       -S : Prints output statistics for each branch in the given output file
       -r : Number of random shuffling (for empirical norm only). Default: 10
       -n : Sets the normalization strategy to "auto" (default), "empirical" or "theoretical"
-          - empirical      : Normalizes the support by the expected mast distance computed
+          - empirical      : Normalizes the support by the expected transfer distance computed
                              using random trees (shuffled from the reference tree)
-          - theoretical    : Normalizes the support by the expected mast distance computed as
+          - theoretical    : Normalizes the support by the expected transfer distance computed as
                              p-1, p=the number of taxa on the lightest side of the bipartition
           - auto (default) : Will choose automatically : empirical if < 1000 taxa, theoretical
                              otherwise

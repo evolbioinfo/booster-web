@@ -178,6 +178,7 @@ func initRunners(cfg config.Provider) {
 	log.Print(fmt.Sprintf("Nb runners: %d", nbrunners))
 	log.Print(fmt.Sprintf("Queue size: %d", queuesize))
 	log.Print(fmt.Sprintf("Job timeout: %ds", timeout))
+	log.Print(fmt.Sprintf("Job threads: %d", jobthreads))
 
 	queue = make(chan *model.Analysis, queuesize)
 
