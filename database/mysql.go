@@ -72,6 +72,8 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
 	dban := dbanalysis{}
 	if rows.Next() {
 		if err := rows.Scan(&dban.id, &dban.reffile, &dban.bootfile, &dban.result,
