@@ -1,0 +1,26 @@
+[database]
+# Type : memory or mysql (default memory)
+type = "mysql"
+user = "user"
+port = 3306
+host = "localhost"
+pass = "password"
+dbname = "booster-web"
+
+[runners]
+# Maximum number of pending jobs (default : 10)
+queuesize = 200
+# Number of parallel running jobs (default : 1)
+nbrunners  = 2
+# Number of cpus per bootstrap job
+jobthreads  = 5
+# Timout for each job in seconds (default unlimited)
+timeout  = 10
+
+[logging]
+# Log file : "stdout", "stderr", or any file
+logfile = "/var/log/booster.log"
+
+[http]
+# HTTP server Listening port
+port = 8080

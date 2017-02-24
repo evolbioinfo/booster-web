@@ -1,0 +1,90 @@
+#!/bin/bash
+#
+#	/etc/init.d/booster-web
+#
+#	booster-web service running on port 8080
+#	<any general comments about this init script>
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+PROG=booster-web
+BOOSTERWEB=/path/to/executable
+CONFIG=/path/to/config/file.toml
+LOCKFILE=/path/to/process/lock/file
+PIDFILE=/path/to/process/pid/file
+BOOSTERUSER=execuser
+
+start() {
+	echo "Starting $PROG: "
+	daemon daemonize -l $LOCKFILE -p $PIDFILE -u $BOOSTERUSER $BOOSTERWEB
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ];then
+		echo "Started"
+	else
+		echo "Not started"
+	fi
+	return $RETVAL
+}	
+
+stop() {
+	echo -n "Shutting down $PROG: "
+	[ -f $PIDFILE ] && kill `cat $PIDFILE` 
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ];then
+		echo_success
+	else
+		echo_failure
+	fi
+	echo "Shutdown"
+	rm -f $PIDFILE
+	rm -f $LOCKFILE
+	return $RETVAL
+}
+
+status() {
+        echo -n "Checking $PROG status: "
+	OUT=0
+	if [ -f $PIDFILE ]
+	then
+		PID=`cat $PIDFILE`
+		NPROC=`ps -o pid -p $PID | grep -v "PID" | wc -l`
+		if [ $NPROC -eq 1 ]
+		then
+			echo "RUNNING: pid=$PID"
+			return 0
+		else
+			echo_warning
+			echo "Not RUNNING but with a pid file : $PIDFILE"
+			return 1
+		fi
+	else
+		echo "Not RUNNING"
+		return 1
+	fi
+        RETVAL=$?
+        return $RETVAL
+}
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status
+	;;
+    restart)
+    	stop
+	start
+	;;
+    *)
+	echo "Usage: booster-web {start|stop|status|restart"
+	exit 1
+	;;
+esac
+exit $?
+

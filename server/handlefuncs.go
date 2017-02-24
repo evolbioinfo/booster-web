@@ -1,21 +1,20 @@
 package server
 
 import (
-	"bufio"
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"mime/multipart"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/fredericlemoine/gotree/upload"
 	"github.com/fredericlemoine/booster-web/io"
+	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/templates"
+	"github.com/fredericlemoine/gotree/io/newick"
+	"github.com/fredericlemoine/gotree/upload"
 )
 
 type ErrorInfo struct {
@@ -71,11 +70,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	//nw := t.Newick()
 	//w.Write([]byte(nw))
 
-	a, ok := getAnalysis(id)
-	if !ok {
-		existerr := errors.New("Analysis does not exist")
-		io.LogError(existerr)
-		errorHandler(w, r, existerr)
+	a, err := getAnalysis(id)
+	if err != nil {
+		io.LogError(err)
+		errorHandler(w, r, err)
 		return
 	}
 
@@ -89,16 +87,15 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 }
 
 func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
-	a, ok := getAnalysis(id)
-	if !ok {
-		existerr := errors.New("Analysis does not exist")
-		io.LogError(existerr)
-		errorHandler(w, r, existerr)
+	a, err := getAnalysis(id)
+	if err != nil {
+		io.LogError(err)
+		errorHandler(w, r, err)
 		return
 	}
-	if a.Status == STATUS_FINISHED || a.Status == STATUS_TIMEOUT {
+	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
-		url, _, err := upld.Upload(fmt.Sprintf("%d", a.Id), a.result)
+		url, _, err := upld.UploadNewick(fmt.Sprintf("%d", a.Id), a.Result)
 		if err != nil {
 			io.LogError(err)
 			errorHandler(w, r, err)
@@ -148,42 +145,28 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreader, referr := GetFormFileReader(reftree, refhandler)
-	if referr != nil {
-		io.LogError(referr)
-		errorHandler(w, r, referr)
-		return
-	}
+	a := newAnalysis(reftree, refhandler, boottree, boothandler)
 
-	bootreader, booterr := GetFormFileReader(boottree, boothandler)
-	if booterr != nil {
-		io.LogError(booterr)
-		errorHandler(w, r, booterr)
-		return
-	}
+	reftree.Close()
+	boottree.Close()
 
-	a := newAnalysis(refreader, bootreader, reftree, boottree)
 	http.Redirect(w, r, "/view/"+a.Id, http.StatusSeeOther)
-
 }
 
 // 0<=Collapse<=100
 func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64) {
 	w.Header().Set("Content-Type", "application/json")
-	var a *Analysis
-	a, ok := getAnalysis(id)
-	if !ok {
-		a = &Analysis{"none",
-			nil,
-			nil,
-			nil,
-			nil,
-			nil,
-			STATUS_NOT_EXISTS,
-			StatusStr(STATUS_NOT_EXISTS),
-			"This analysis does not exist",
-			0,
+	var a *model.Analysis
+	a, err := getAnalysis(id)
+	if err != nil {
+		a = &model.Analysis{"none",
 			"",
+			"",
+			"",
+			model.STATUS_NOT_EXISTS,
+			model.StatusStr(model.STATUS_NOT_EXISTS),
+			err.Error(),
+			0,
 			"",
 			"",
 			"",
@@ -192,8 +175,12 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	}
 	/* We collapse lowly supported branches */
 	if collapse > 0 {
-		t := a.result.Clone()
-		t.CollapseLowSupport(collapse / 100)
+		t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+		if err == nil {
+			t.CollapseLowSupport(collapse / 100)
+		} else {
+			a.Message = "Cannot collapse branches : " + err.Error()
+		}
 		a.Collapsed = t.Newick()
 	}
 	json.NewEncoder(w).Encode(a)
@@ -224,21 +211,6 @@ func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string, float64)
 		f, _ := strconv.ParseFloat(m[3], 64)
 		fn(w, r, m[2], f)
 	}
-}
-
-/* Returns the opened file and a buffered reader (gzip or not) for the file */
-func GetFormFileReader(f multipart.File, h *multipart.FileHeader) (*bufio.Reader, error) {
-	var reader *bufio.Reader
-	if strings.HasSuffix(h.Filename, ".gz") {
-		if gr, err := gzip.NewReader(f); err != nil {
-			return nil, err
-		} else {
-			reader = bufio.NewReader(gr)
-		}
-	} else {
-		reader = bufio.NewReader(f)
-	}
-	return reader, nil
 }
 
 func getTemplate(name string) (*template.Template, error) {
