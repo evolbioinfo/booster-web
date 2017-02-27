@@ -432,16 +432,18 @@ func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfi
 	a.Reffile = reftree
 	a.Bootfile = boottrees
 
-	/* Insert analysis */
-	err = db.UpdateAnalysis(a)
 	if err != nil {
 		log.Print(err)
 		a.Status = model.STATUS_CANCELED
 		a.StatusStr = model.StatusStr(a.Status)
 		a.Message = err.Error()
 		delTemp(a)
+		db.UpdateAnalysis(a)
 		return
 	}
+
+	/* Insert analysis */
+	err = db.UpdateAnalysis(a)
 
 	select {
 	case queue <- a: // Put a in the channel unless it is full
@@ -451,9 +453,10 @@ func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfi
 		a.StatusStr = model.StatusStr(a.Status)
 		a.End = time.Now().Format(time.RFC1123)
 		a.Message = "Computing queue is full, please try again in a few minutes"
+		/* Insert analysis */
+		err = db.UpdateAnalysis(a)
 		delTemp(a)
 	}
-
 	return
 }
 
@@ -479,8 +482,10 @@ func delTemp(a *model.Analysis) {
 	}
 }
 
-/* Keep a trace of currently running jobs */
-
+/**
+Keep a trace of currently running jobs
+In order to cancel them when the server stops
+*/
 func newRunningJob(a *model.Analysis) {
 	lock.Lock()
 	defer lock.Unlock()
