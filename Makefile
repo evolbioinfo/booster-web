@@ -1,7 +1,7 @@
 GO_EXECUTABLE := go
 VERSION := $(shell git describe --abbrev=10 --dirty --always --tags)
 DIST_DIRS := find * -type d -exec
-VERSION_PACKAGE := github.com/fredericlemoine/boosterweb/cmd.Version
+VERSION_PACKAGE := github.com/fredericlemoine/booster-web/cmd.Version
 PACKAGE:=github.com/fredericlemoine/booster-web
 NAME := booster-web
 ASSETFS=(static/bindata_assetfs.go templates/bindata_templates.go)
