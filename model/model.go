@@ -1,5 +1,11 @@
 package model
 
+import (
+	"log"
+	"os"
+	"path/filepath"
+)
+
 const (
 	STATUS_NOT_EXISTS = -1
 	STATUS_PENDING    = 0
@@ -43,5 +49,17 @@ func StatusStr(status int) string {
 		return "Timeout"
 	default:
 		return "Unknown"
+	}
+}
+
+func (a *Analysis) DelTemp() {
+	if err := os.Remove(a.Reffile); err != nil {
+		log.Print(err)
+	}
+	if err := os.Remove(a.Bootfile); err != nil {
+		log.Print(err)
+	}
+	if err := os.Remove(filepath.Dir(a.Bootfile)); err != nil {
+		log.Print(err)
 	}
 }

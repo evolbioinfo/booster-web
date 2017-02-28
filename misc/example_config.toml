@@ -8,13 +8,17 @@ pass = "password"
 dbname = "booster-web"
 
 [runners]
-# Maximum number of pending jobs (default : 10)
+# galaxy or local. If galaxy: requires galaxykey & galaxyurl
+type="galaxy"
+galaxykey="apikey"
+galaxyurl="http(s)://ip:port"
+# Maximum number of pending jobs (default : 10): for galaxy & local
 queuesize = 200
-# Number of parallel running jobs (default : 1)
+# Number of parallel running jobs (default : 1): for local only
 nbrunners  = 2
-# Number of cpus per bootstrap job
+# Number of cpus per bootstrap job : for local only
 jobthreads  = 5
-# Timout for each job in seconds (default unlimited)
+# Timout for each job in seconds (default unlimited): for local only
 timeout  = 10
 
 [logging]

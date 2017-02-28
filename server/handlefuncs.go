@@ -145,7 +145,10 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a := newAnalysis(reftree, refhandler, boottree, boothandler)
+	a, err := newAnalysis(reftree, refhandler, boottree, boothandler)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	reftree.Close()
 	boottree.Close()
@@ -172,6 +175,9 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 			"",
 			"",
 		}
+		io.LogError(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	/* We collapse lowly supported branches */
 	if collapse > 0 {
