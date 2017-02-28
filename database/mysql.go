@@ -140,6 +140,6 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 func (db *MySQLBoosterwebDB) InitDatabase() error {
 	log.Print("Initializing mysql Database")
 	_, err := db.db.Exec(
-		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results blob, status int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
+		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results longtext, status int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
 	return err
 }
