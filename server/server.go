@@ -177,7 +177,8 @@ func initProcessor(cfg config.Provider) {
 		galproc := &processor.GalaxyProcessor{}
 		galproc.InitProcessor(galaxyurl, galaxykey, db, queuesize)
 		proc = galproc
-	case "local":
+	case "local", "":
+		// Local or not set
 		locproc := &processor.LocalProcessor{}
 		locproc.InitProcessor(nbrunners, queuesize, timeout, jobthreads, db)
 		proc = locproc
