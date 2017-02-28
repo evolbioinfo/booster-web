@@ -33,6 +33,8 @@ You can directly run the `booster-web` executable without any configuration. It 
 * Job Timeout: unlimited
 * 1 thread per job
 
+To access the web interface, just go to [http://localhost:8080](http://localhost:8080)
+
 ## Other configurations
 It is possible to configure `booster-web` to run with specific options. To do so, create a configuration file `booster-web.toml` with the following sections:
 * database
