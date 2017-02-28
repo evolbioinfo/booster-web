@@ -175,7 +175,7 @@ func initProcessor(cfg config.Provider) {
 			log.Fatal("galaxykey must be provided in configuration file when type=galaxy")
 		}
 		galproc := &processor.GalaxyProcessor{}
-		galproc.InitProcessor(galaxyurl, galaxykey, db, queuesize, nbrunners)
+		galproc.InitProcessor(galaxyurl, galaxykey, db, queuesize)
 		proc = galproc
 	case "local":
 		locproc := &processor.LocalProcessor{}
