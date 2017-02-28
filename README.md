@@ -55,7 +55,7 @@ It is possible to configure `booster-web` to run with specific options. To do so
 * http
   * port=[http server listening port]
   
-And run booster web: `booster-web -cfg booster-web.toml`
+And run booster web: `booster-web --config booster-web.toml`
 
 ## Example of configuration file
 ```
