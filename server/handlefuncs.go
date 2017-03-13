@@ -179,15 +179,17 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	/* We collapse lowly supported branches */
-	if collapse > 0 {
-		t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
-		if err == nil {
+	t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+	if err == nil {
+		/* We collapse lowly supported branches */
+		t.ClearPvalues()
+		a.Result = t.Newick()
+		if collapse > 0 {
 			t.CollapseLowSupport(collapse / 100)
-		} else {
-			a.Message = "Cannot collapse branches : " + err.Error()
 		}
 		a.Collapsed = t.Newick()
+	} else {
+		a.Message = "Cannot collapse branches : " + err.Error()
 	}
 	json.NewEncoder(w).Encode(a)
 }

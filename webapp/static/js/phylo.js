@@ -40,7 +40,7 @@ function updateTreeCanvas(collapse){
 		if(analysis.status == 2 || analysis.status == 5){
 		    tree.load(analysis.collapsed);
 		}
-		newick=analysis.newick;
+		newick=analysis.result;
 	    },
 	    error: function(resultat, statut, erreur){
 		console.log(erreur);
