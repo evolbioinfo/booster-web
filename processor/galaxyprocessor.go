@@ -135,13 +135,17 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			if err != nil {
 				return
 			}
-			log.Print(string(outcontent))
+			/*log.Print(string(outcontent))*/
 			a.Result = string(outcontent)
 			a.Status = model.STATUS_FINISHED
 			a.StatusStr = model.StatusStr(a.Status)
 			a.End = time.Now().Format(time.RFC1123)
 			a.Message = "Finished"
 			err = p.db.UpdateAnalysis(a)
+			/* Delete history */
+			if _, err2 := p.galaxy.DeleteHistory(historyid); err2 != nil {
+				log.Print(err2)
+			}
 			return
 		case "queued":
 			a.Status = model.STATUS_PENDING
@@ -172,6 +176,10 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			a.StatusStr = model.StatusStr(a.Status)
 			log.Print("Job in unknown state " + state)
 			err = p.db.UpdateAnalysis(a)
+			/* Delete history */
+			if _, err2 := p.galaxy.DeleteHistory(historyid); err2 != nil {
+				log.Print(err2)
+			}
 			return
 		}
 
