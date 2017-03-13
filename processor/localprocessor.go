@@ -88,14 +88,14 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 				a.Status = model.STATUS_RUNNING
 				a.StartRunning = time.Now().Format(time.RFC1123)
 				a.StatusStr = model.StatusStr(a.Status)
-				supporter := &support.BoosterSupporter{}
+				supporter := support.NewBoosterSupporter(true, false, 0.05)
 				finished := false
 				p.db.UpdateAnalysis(a)
 				p.newRunningJob(a)
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
 				go func() {
-					t, err := support.ComputeSupport(a.Reffile, a.Bootfile, os.Stderr, false, jobthreads, supporter)
+					t, err := support.ComputeSupport(a.Reffile, a.Bootfile, os.Stderr, jobthreads, supporter)
 					a.End = time.Now().Format(time.RFC1123)
 
 					if err != nil {
