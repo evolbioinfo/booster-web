@@ -95,6 +95,12 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
+		t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+		if err == nil {
+			t.ClearPvalues()
+			a.Result = t.Newick()
+		}
+
 		url, _, err := upld.UploadNewick(fmt.Sprintf("%d", a.Id), a.Result)
 		if err != nil {
 			io.LogError(err)
