@@ -99,6 +99,8 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 		if err == nil {
 			t.ClearPvalues()
 			a.Result = t.Newick()
+		} else {
+			io.LogError(err)
 		}
 
 		url, _, err := upld.UploadNewick(fmt.Sprintf("%d", a.Id), a.Result)

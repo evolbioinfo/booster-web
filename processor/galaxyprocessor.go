@@ -135,7 +135,6 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			if err != nil {
 				return
 			}
-			/*log.Print(string(outcontent))*/
 			a.Result = string(outcontent)
 			a.Status = model.STATUS_FINISHED
 			a.StatusStr = model.StatusStr(a.Status)
