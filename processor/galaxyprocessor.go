@@ -92,13 +92,13 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	}
 
 	// We upload ref tree to history
-	fileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile)
+	fileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile, "nhx")
 	if err != nil {
 		return
 	}
 
 	// We upload boot tree to history
-	fileid2, _, err = p.galaxy.UploadFile(historyid, a.Bootfile)
+	fileid2, _, err = p.galaxy.UploadFile(historyid, a.Bootfile, "nhx")
 	if err != nil {
 		return
 	}
