@@ -41,7 +41,7 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 func (p *GalaxyProcessor) InitProcessor(url, apikey string, db database.BoosterwebDB, queuesize int) {
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
-	p.galaxy = golaxy.NewGalaxy(url, apikey)
+	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
