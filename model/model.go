@@ -26,7 +26,7 @@ type Analysis struct {
 	Message      string `json:"message"`      // error message if any
 	Nboot        int    `json:"nboot"`        // number of trees that have been processed
 	Collapsed    string `json:"collapsed"`    // Newick representation of collapsed resulting tree if any
-	StartPending string `json:startpending`   // Analysis queue time
+	StartPending string `json:"startpending"`   // Analysis queue time
 	StartRunning string `json:"startrunning"` // Analysis Start running time
 	End          string `json:"end"`          // Analysis End time
 }
