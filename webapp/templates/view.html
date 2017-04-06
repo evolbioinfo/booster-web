@@ -41,9 +41,16 @@ BOOSTER - Results {{.Id}}
 <div class="panel panel-default">
   <div class="panel-heading">Tree</div>
   <div class="panel-body">
-    <div>Bootstrap support collapse cutoff: <span id="collapse">80</span></div><br/>
+    <div>Bootstrap support highlight cutoff: <span id="collapse">80</span></div><br/>
     <div id="slider"></div><br/>
-    <div id="phylocanvas" data-id="{{.Id}}"></div>
+    <select id="layout" name="layout">
+      <option value="radial">radial</option> 
+      <option value="circular">circular</option>
+      <option value="normal">normal</option>
+    </select><br/>
+    <div id="phylocanvas" data-id="{{.Id}}">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D" alt="" />
+    </div>
   </div>
 </div>
 {{ end }}

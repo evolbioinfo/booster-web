@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/fredericlemoine/booster-web/io"
 	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/templates"
+	"github.com/fredericlemoine/gotree/draw"
 	"github.com/fredericlemoine/gotree/io/newick"
 	"github.com/fredericlemoine/gotree/upload"
 )
@@ -202,6 +204,70 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	json.NewEncoder(w).Encode(a)
 }
 
+func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64, layout, format string) {
+	var a *model.Analysis
+	a, err := getAnalysis(id)
+	if err != nil {
+		a = &model.Analysis{"none",
+			"",
+			"",
+			"",
+			model.STATUS_NOT_EXISTS,
+			model.StatusStr(model.STATUS_NOT_EXISTS),
+			err.Error(),
+			0,
+			"",
+			"",
+			"",
+			"",
+		}
+		io.LogError(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+	if err != nil {
+		io.LogError(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		var d draw.TreeDrawer
+		var l draw.TreeLayout
+		encoder := base64.NewEncoder(base64.StdEncoding, w)
+
+		switch format {
+		case "svg":
+			w.Header().Set("Content-Type", "image/svg+xml")
+			d = draw.NewSvgTreeDrawer(w, 800, 800, 30, 30, 30, 30)
+		case "png":
+			w.Header().Set("Content-Type", "image/png;base64")
+			d = draw.NewPngTreeDrawer(encoder, 800, 800, 30, 30, 30, 30)
+		default:
+			err := errors.New("Image format not recognized")
+			io.LogError(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		switch layout {
+		case "radial":
+			l = draw.NewRadialLayout(d, false, false, false, true)
+		case "circular":
+			l = draw.NewCircularLayout(d, false, false, false, true)
+		case "normal":
+			l = draw.NewNormalLayout(d, false, false, false, true)
+		default:
+			err := errors.New("Tree layout not recognized")
+			io.LogError(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		l.SetSupportCutoff(collapse / 100.0)
+		l.DrawTree(t)
+		encoder.Close()
+	}
+}
+
 var validPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
@@ -226,6 +292,22 @@ func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string, float64)
 		}
 		f, _ := strconv.ParseFloat(m[3], 64)
 		fn(w, r, m[2], f)
+	}
+}
+
+// URL of the form:
+// /api/image/analysisid/bootstrapcutoff/treelayout/imageformat
+var validApiImagePath = regexp.MustCompile("^/api/image/([-a-zA-Z0-9]+)/([0-9]+)/(circular|radial|normal)/(svg|png)$")
+
+func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, float64, string, string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := validApiImagePath.FindStringSubmatch(r.URL.Path)
+		if m == nil {
+			http.NotFound(w, r)
+			return
+		}
+		f, _ := strconv.ParseFloat(m[2], 64)
+		fn(w, r, m[1], f, m[3], m[4])
 	}
 }
 

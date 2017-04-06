@@ -1,46 +1,53 @@
 var newick="";
 var tree;
+var layout="radial";
+var collapse=80;
 
 $( document ).ready(function() {
     $( "#phylocanvas" ).each(function() {
-	tree = Phylocanvas.createTree('phylocanvas',{alignLabels: true,
-						     showLabels : false,
-						     showBootstrap: true,
-						     history: {
-							 parent: $(this).get(0),
-							 zIndex: 1,
-						     }});
+	//tree = Phylocanvas.createTree('phylocanvas',{alignLabels: true,
+	//					     showLabels : false,
+	//					     showBootstrap: true,
+	//					     history: {
+	//						 parent: $(this).get(0),
+	//						 zIndex: 1,
+	//					     }});
     });
     updateTreeCanvas(80)
-			     
+
     $( "#slider" ).slider({
 	min:0,
 	max:100,
 	step: 1,
-	value:80,
+	value:collapse,
 	change: function( event, ui ) {
-	    updateTreeCanvas(ui.value);
+	    collapse=ui.value;
+	    updateTreeCanvas();
 	},
 	slide: function( event, ui ) {
 	    $("#collapse").html(ui.value);
 	}
     });
+
+    $ ("#layout").change(function(){
+	$( "#layout option:selected" ).each(function() {
+	    layout=$(this).text();
+	});
+	updateTreeCanvas();
+    });
 });
 
 /* Collapse: from 0 to 100 : collapse branches with support < collapse */
-function updateTreeCanvas(collapse){
+function updateTreeCanvas(){
     $( "#phylocanvas" ).each(function() {
-	var id = $("#phylocanvas").data("id");
+	var id = $(this).data("id");
+	var elt = $(this);
 	$.ajax({
-	    url: "/api/analysis/"+id+"/"+collapse,
-	    dataType: 'json',
+	    url: "/api/image/"+id+"/"+collapse+"/"+layout+"/svg",
+	    dataType: 'text',
 	    async: true,
 	    success: function(data) {
-		var analysis = data;
-		if(analysis.status == 2 || analysis.status == 5){
-		    tree.load(analysis.collapsed);
-		}
-		newick=analysis.result;
+		elt.find("img").attr('src','data:image/svg+xml,' + data);
 	    },
 	    error: function(resultat, statut, erreur){
 		console.log(erreur);

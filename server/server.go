@@ -145,6 +145,7 @@ func InitServer(cfg config.Provider) {
 
 	/* Api handlers */
 	http.HandleFunc("/api/analysis/", makeApiHandler(apiAnalysisHandler)) /* Handler for returning an analysis */
+	http.HandleFunc("/api/image/", makeApiImageHandler(apiImageHandler))  /* Handler for returning a tree image */
 
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.FileServer(static.AssetFS()))
