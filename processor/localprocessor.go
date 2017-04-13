@@ -11,6 +11,7 @@ import (
 	"github.com/fredericlemoine/booster-web/database"
 	"github.com/fredericlemoine/booster-web/io"
 	"github.com/fredericlemoine/booster-web/model"
+	"github.com/fredericlemoine/gotree/io/utils"
 	"github.com/fredericlemoine/gotree/support"
 )
 
@@ -95,26 +96,45 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
 				go func() {
-					t, err := support.ComputeSupport(a.Reffile, a.Bootfile, os.Stderr, jobthreads, supporter)
-					a.End = time.Now().Format(time.RFC1123)
-
+					refTree, err := utils.ReadTree(a.Reffile)
 					if err != nil {
 						io.LogError(err)
 						a.Message = err.Error()
 						a.Status = model.STATUS_ERROR
 						a.StatusStr = model.StatusStr(a.Status)
 					} else {
-						if supporter.Canceled() {
-							a.Status = model.STATUS_TIMEOUT
+						treefile, treereader, err2 := utils.GetReader(a.Bootfile)
+						defer treefile.Close()
+						if err2 != nil {
+							io.LogError(err2)
+							a.Message = err2.Error()
+							a.Status = model.STATUS_ERROR
 							a.StatusStr = model.StatusStr(a.Status)
 						} else {
-							a.Status = model.STATUS_FINISHED
-							a.StatusStr = model.StatusStr(a.Status)
+							treeChannel := utils.ReadMultiTrees(treereader)
+
+							err3 := support.ComputeSupport(refTree, treeChannel, os.Stderr, jobthreads, supporter)
+							a.End = time.Now().Format(time.RFC1123)
+
+							if err3 != nil {
+								io.LogError(err3)
+								a.Message = err3.Error()
+								a.Status = model.STATUS_ERROR
+								a.StatusStr = model.StatusStr(a.Status)
+							} else {
+								if supporter.Canceled() {
+									a.Status = model.STATUS_TIMEOUT
+									a.StatusStr = model.StatusStr(a.Status)
+								} else {
+									a.Status = model.STATUS_FINISHED
+									a.StatusStr = model.StatusStr(a.Status)
+								}
+								refTree.ClearPvalues()
+								a.Result = refTree.Newick()
+								a.Collapsed = a.Result
+								a.Message = "Finished"
+							}
 						}
-						t.ClearPvalues()
-						a.Result = t.Newick()
-						a.Collapsed = a.Result
-						a.Message = "Finished"
 					}
 					p.db.UpdateAnalysis(a)
 					p.rmRunningJob(a)
