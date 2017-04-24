@@ -155,7 +155,21 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := newAnalysis(reftree, refhandler, boottree, boothandler)
+	algorithm := r.FormValue("algorithm")
+
+	if algorithm != "booster" && algorithm != "classical" {
+		io.LogError(errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
+		errorHandler(w, r, errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
+		return
+	}
+
+	if err2 != nil {
+		io.LogError(err2)
+		errorHandler(w, r, err2)
+		return
+	}
+
+	a, err := newAnalysis(reftree, refhandler, boottree, boothandler, algorithm)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -177,6 +191,7 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 			"",
 			"",
 			model.STATUS_NOT_EXISTS,
+			model.ALGORITHM_CLASSICAL,
 			model.StatusStr(model.STATUS_NOT_EXISTS),
 			err.Error(),
 			0,
@@ -213,6 +228,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 			"",
 			"",
 			model.STATUS_NOT_EXISTS,
+			model.ALGORITHM_CLASSICAL,
 			model.StatusStr(model.STATUS_NOT_EXISTS),
 			err.Error(),
 			0,

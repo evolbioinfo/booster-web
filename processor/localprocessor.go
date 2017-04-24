@@ -83,13 +83,20 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 	// We initialize computing routines
 	for cpu := 0; cpu < nbrunners; cpu++ {
 		go func(cpu int) {
+			var supporter support.Supporter
+
 			for a := range p.queue {
 				log.Print(fmt.Sprintf("CPU=%d | New analysis, id=%s", cpu, a.Id))
 
 				a.Status = model.STATUS_RUNNING
 				a.StartRunning = time.Now().Format(time.RFC1123)
 				a.StatusStr = model.StatusStr(a.Status)
-				supporter := support.NewBoosterSupporter(true, false, 0.05)
+
+				if a.Algorithm == model.ALGORITHM_BOOSTER {
+					supporter = support.NewBoosterSupporter(true, false, 0.05)
+				} else if a.Algorithm == model.ALGORITHM_CLASSICAL {
+					supporter = support.NewClassicalSupporter(true)
+				}
 				finished := false
 				p.db.UpdateAnalysis(a)
 				p.newRunningJob(a)

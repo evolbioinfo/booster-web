@@ -275,7 +275,13 @@ func initLog(cfg config.Provider) {
 	log.SetOutput(logfile)
 }
 
-func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfile multipart.File, bootheader *multipart.FileHeader) (*model.Analysis, error) {
+/*Algorithm: booster or classical */
+func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfile multipart.File, bootheader *multipart.FileHeader, algorithm string) (*model.Analysis, error) {
+
+	algo, e := model.AlgorithmConst(algorithm)
+	if e != nil {
+		return nil, e
+	}
 
 	uuid := <-uuids
 
@@ -285,6 +291,7 @@ func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfi
 		"",
 		"",
 		model.STATUS_PENDING,
+		algo,
 		model.StatusStr(model.STATUS_PENDING),
 		"",
 		0,
