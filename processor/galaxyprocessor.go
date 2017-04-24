@@ -107,7 +107,10 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	mapfiles := make(map[string]string)
 	mapfiles["ref"] = fileid
 	mapfiles["boot"] = fileid2
-	_, jobs, err = p.galaxy.LaunchTool(historyid, "booster", mapfiles)
+	params := make(map[string]string)
+	params["algorithm"] = model.AlgorithmStr(a.Algorithm)
+
+	_, jobs, err = p.galaxy.LaunchTool(historyid, "booster", mapfiles, params)
 	if err != nil {
 		return
 	}
