@@ -241,6 +241,20 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	if a.Status != model.STATUS_FINISHED {
+		e := errors.New(fmt.Sprintf("Cannot draw image for a non finished analysis, status : %s", model.StatusStr(a.Status)))
+		io.LogError(e)
+		http.Error(w, e.Error(), http.StatusInternalServerError)
+		return
+	}
+	if a.Result == "" {
+		e := errors.New("Cannot draw image for an empty resulting tree")
+		io.LogError(e)
+		http.Error(w, e.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
 	if err != nil {
 		io.LogError(err)
