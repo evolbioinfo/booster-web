@@ -4,15 +4,15 @@ var layout="radial";
 var collapse=80;
 
 $( document ).ready(function() {
-    $( "#phylocanvas" ).each(function() {
-	//tree = Phylocanvas.createTree('phylocanvas',{alignLabels: true,
-	//					     showLabels : false,
-	//					     showBootstrap: true,
-	//					     history: {
-	//						 parent: $(this).get(0),
-	//						 zIndex: 1,
-	//					     }});
-    });
+    // $( "#phylocanvas" ).each(function() {
+    //tree = Phylocanvas.createTree('phylocanvas',{alignLabels: true,
+    //					     showLabels : false,
+    //					     showBootstrap: true,
+    //					     history: {
+    //						 parent: $(this).get(0),
+    //						 zIndex: 1,
+    //					     }});
+    //});
     updateTreeCanvas(80)
 
     $( "#slider" ).slider({
@@ -57,7 +57,15 @@ function updateTreeCanvas(){
 }
 
 function downloadTree(id){
-    if(newick!=""){
-	download(newick, "bootstrap.nh", "text/plain");
-    }
+    $.ajax({
+	url: "/api/analysis/"+id+"/0",
+	dataType: 'json',
+ 	async: true,
+ 	success: function(data) {
+	    var analysis = data;
+	    if(analysis.status == 2 || analysis.status == 5){
+		download(analysis.result, "bootstrap.nh", "text/plain");
+	    }
+	}
+    });
 }
