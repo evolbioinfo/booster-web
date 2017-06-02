@@ -17,6 +17,54 @@ Clicking on the "run" button will launch the analysis and take you to the result
     2. Links to export resulting tree to iTOL and to download resulting tree;
     3. Tree visualizer that allows to highlight branches with a support greater than the cutoff given by the slider.
 
+## Generating reference and bootstrap trees
+
+* PhyML: PhyML already generates bootstrap trees. Input file: alignment, Phylip format
+```bash
+phyml -i align.phy -d nt -b 100 -m GTR -f e -t e -c 6 -a e -s BEST -o tlr 
+# Output Reference tree: align.phy_phyml_tree.txt
+# Output Bootstrap trees: align.phy_phyml_boot_trees.txt
+```
+
+* RAxML: FBP with RAxML. Input file: alignment, Phylip format
+```bash
+# Build reference tree
+raxmlHPC -m GTRGAMMA -p $RANDOM -s align.phy -n REF
+# Build bootstrap trees
+raxmlHPC -m GTRGAMMA -p $RANDOM -b $RANDOM -# 100 -s align.phy -n BOOT
+# Output Reference tree: RAxML_bestTree.REF
+# Output Bootstrap trees: RAxML_bootstrap.BOOT
+```
+
+* RAxML: Booster supports and rapid bootstrap. Input file: alignment, Phylip format
+```bash
+# Build reference tree + bootstrap trees
+raxmlHPC -f a -m GTRGAMMA -c 4 -s align.phy -n align -T 4 -p $RANDOM -x $RANDOM -# 100
+# Output Reference tree: RAxML_bestTree.align
+# Output Bootstrap trees: RAxML_bootstrap.align
+```
+
+* FastTree: You will need to generate bootstrap alignments (Phylip format), with [goalign](https://github.com/fredericlemoine/goalign) for example. Input file: alignment (Phylip or Fasta format)
+```bash
+# Build bootstrap alignments
+goalign build seqboot -i align.phy -p -n 100 -o boot -S
+# Build reference tree
+FastTree -nt -gtr align.phy > ref.nhx
+# Build bootstrap trees
+cat boot*.ph | FastTree -nt -n 100 -gtr > boot.nhx
+# Output Reference tree: ref.nhx
+# Output Bootstrap trees: boot.nhx
+```
+
+* IQ-TREE : Booster supports and ultrafast bootstrap. Input file: alignment (Phylip format)
+```
+# Infer Reference tree + ultrafast bootstrap trees
+iqtree-omp -wbt -s align.phy -m GTR -bb 100 -nt 5
+# Output Reference tree: align.phy.treefile
+# Output Bootstrap trees: align.phy.ufboot
+```
+
+
 ## Installing a local version of the web interface
 
 The web interface has been developped in Go, and in thus executable on any platform (Linux, MacOS, and Windows).
