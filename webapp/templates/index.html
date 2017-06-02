@@ -7,23 +7,27 @@ BOOSTER - BOOtstrap Support by TransfER
 
 {{ define "content" }}
 <div>
-<h2>WHAT IS BOOSTER?</h2>
-<div style="float:right;">
-  <img src="/static/img/hiv.png" style="width:500px;"/>
-</div>
 
-<p>BOOSTER is a new method designed to compute bootstrap branch supports. The main idea is that "classical" Felsenstein Bootstrap may fail to support deep branches of large phylogenies, because the exact same branches are not found in any bootstrap tree.</p><br/>
+  
+  <h2>Boosting Felsensteins Phylogenetic Bootstrap (submitted)</h2>
+  <p>F. Lemoine, J.-B. Domelevo-Entfellner, E. Wilkinson, T. De Oliveira, O. Gascuel</p>
+  <div style="float:right;">
+    <img src="/static/img/hiv.png" style="width:500px;"/>
+  </div>
 
-<p>Let's consider a branch b of a reference tree. This branch defines a bipartition of the taxa. It's classical bootstrap support will be computed by counting all bootstrap trees that contain the exact same bipartition of the taxa. If a branch is "almost" (but never perfectly) found in all bootstrap trees, its bootstrap support will be 0.</p><br/>
+  <p>BOOSTER is a new method to compute bootstrap-based branch supports. BOOSTER is an alternative and more informative method to calculate branch supports in large trees, than the "classical" Felsensteins bootstrap method.</p>
+  <p>BOOSTER approach has a simple but sound statistical basis. It replaces the branch presence proportion (i.e. the expectation of a {0,1} indicator function) of Felsensteins bootstrap, by the expectation of a refined, gradual function in the [0,1] range, quantifying the branch presence in the bootstrap trees.</p>
+  <p>BOOSTER is especially relevant with deep branches and large datasets, where branches known to be (nearly) correct are supported by transfer bootstrap while they are not by Felsensteins method. Though higher, BOOSTER supports are not impeded with falsely supported branches.</p>
+  
 
-<p>For this reference branch b, instead of looking for the exact same branch in bootstrap trees, BOOSTER will search the closest branch and compute a distance with the reference branch. This distance is in computed in terms of number of taxa that must be moved around the bipartition. This allows to compute a continuous score in the interval [0,1].</p><br/>
+  <p>Contacts: frederic[dot]lemoine[at]pasteur[dot]fr and olivier[dot]gascuel[at]pasteur[dot]fr, Unité Bioinformatique Evolutive, C3BI USR 3756, Institut Pasteur and CNRS, Paris, France </p>
 
-<p>If you want to learn more about BOOSTER, see the <a href="/help">help</a>.</p><br/>
+  <p>If you want to learn more about BOOSTER, you may read the <a href="/help">help page</a>.</p><br/>
 </div>
 
 <div style="">
-<h2>Run BOOSTER</h2>
-<a class="btn btn-primary" href="/new" role="button">Run BOOSTER</a>
+  <h2>Run BOOSTER</h2>
+  <a class="btn btn-primary" href="/new" role="button">Run BOOSTER</a>
 </div>
 
 {{ end }}
