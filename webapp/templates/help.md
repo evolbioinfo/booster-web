@@ -10,44 +10,39 @@ You can submit BOOSTER jobs on the [run](/run) page of this web interface. Only 
 Clicking on the "run" button will launch the analysis and take you to the result page, with the following steps:
 
 1. The analysis will be first pending, waiting for available resources;
-2. Then, as soon as the analysis is running, you will see the number of bootstrap trees analyzed so far;
+2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
 3. After 1 hour, the analysis is "timedout". It does not mean that it is canceled, but no more bootstrap trees will be taken into account in the support. If you want to analyze a large number of bootstrap trees, we advise to do it through [command-line](#commandline);
 4. Once the analysis done, result page shows the following panels:
     1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
     2. Links to export resulting tree to iTOL and to download resulting tree;
-    3. Tree visualizer that allows to collapse branches with a support lower than the cutoff given by the slider.
+    3. Tree visualizer that allows to highlight branches with a support greater than the cutoff given by the slider.
 
 ## Installing a local version of the web interface
 
 The web interface has been developped in Go, and in thus executable on any platform (Linux, MacOS, and Windows).
-The only thing to do is downloading the latest release of Booster-web on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clinking the executable.
+The only thing to do is downloading the latest release of BoosterWeb on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clinking the executable.
 
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
 ## <a name="commandline"></a>Computing transfer supports via command line
 BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
 
-    Usage: ./booster -i <tree file> -b <bootstrap prefix or file> [-r <# rand shufling> -n <normalization> -@ <cpus> -s <seed> -S <stat file> -o <output tree> -v]
-    Options:
-      -i : Input tree file
-      -b : Bootstrap prefix (e.g. boot_) or file containing several bootstrap trees
-      -o : Output file (optional), default : stdout
-      -@ : Number of threads (default 1)
-      -s : Seed (optional)
-      -S : Prints output statistics for each branch in the given output file
-      -r : Number of random shuffling (for empirical norm only). Default: 10
-      -n : Sets the normalization strategy to "auto" (default), "empirical" or "theoretical"
-          - empirical      : Normalizes the support by the expected transfer distance computed
-                             using random trees (shuffled from the reference tree)
-          - theoretical    : Normalizes the support by the expected transfer distance computed as
-                             p-1, p=the number of taxa on the lightest side of the bipartition
-          - auto (default) : Will choose automatically : empirical if < 1000 taxa, theoretical
-                             otherwise
-      -v : Prints version (optional)
-      -h : Prints this help
+```
+Usage: booster -i <tree file> -b <bootstrap prefix or file> [-@ <cpus>  -S <stat file> -o <output tree> -v]
+Options:
+	-i, --input      : Input tree file
+	-b, --boot       : Bootstrap tree file (1 file containing all bootstrap trees)
+	-o, --out        : Output file (optional), default : stdout
+	-@, --num-threads: Number of threads (default 1)
+	-S, --stat-file  : Prints output statistics for each branch in the given output file
+	-a, --algo       : tbe or fbp (default tbe
+	-q, --quiet      : Does not print progress messages during analysis
+	-v, --version    : Prints version (optional)
+	-h, --help       : Prints this help
+```
 
 All information for installation is available on the github page.
 
 
 ## Supplementary materials
-All data and workflows described in the article are available on [Github](https://github.com/fredericlemoine/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
+All data and workflows described in the article are available on [Github](https://github.com/evolbioinfo/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
