@@ -73,7 +73,7 @@ The only thing to do is downloading the latest release of BoosterWeb on [Github]
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
 ## <a name="commandline"></a>Computing transfer supports via command line
-BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/nameoftheteam/nameofthetool).
+BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/evolbioinfo/booster).
 
 ```
 Usage: booster -i <tree file> -b <bootstrap prefix or file> [-@ <cpus>  -S <stat file> -o <output tree> -v]
