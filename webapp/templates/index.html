@@ -9,17 +9,20 @@ BOOSTER - BOOtstrap Support by TransfER
 <div>
 
   
-  <h2>Boosting Felsensteins Phylogenetic Bootstrap (submitted)</h2>
+  <h2>Boosting Felsenstein's Phylogenetic Bootstrap (submitted)</h2>
   <p>F. Lemoine, J.-B. Domelevo-Entfellner, E. Wilkinson, T. De Oliveira, O. Gascuel</p>
   <div style="float:right;">
     <img src="/static/img/hiv.png" style="width:500px;"/>
   </div>
 
-  <p>BOOSTER is a new method to compute bootstrap-based branch supports. BOOSTER is an alternative and more informative method to calculate branch supports in large trees, than the "classical" Felsensteins bootstrap method.</p>
-  <p>BOOSTER approach has a simple but sound statistical basis. It replaces the branch presence proportion (i.e. the expectation of a {0,1} indicator function) of Felsensteins bootstrap, by the expectation of a refined, gradual function in the [0,1] range, quantifying the branch presence in the bootstrap trees.</p>
-  <p>BOOSTER is especially relevant with deep branches and large datasets, where branches known to be (nearly) correct are supported by transfer bootstrap while they are not by Felsensteins method. Though higher, BOOSTER supports are not impeded with falsely supported branches.</p>
+  <p>BOOSTER is an alternative and more informative method to calculate bootstrap branch supports in large trees, than the "classical" Felsenstein's bootstrap method.</p>
+  <p>BOOSTER approach has a simple but sound statistical basis. It replaces the branch presence proportion (i.e. the expectation of a {0,1} indicator function) of Felsenstein's bootstrap, by the expectation of a refined, gradual function in the [0,1] range, quantifying the branch presence in the bootstrap trees.</p>
+  <p>BOOSTER is especially relevant with deep branches and large datasets, where branches known to be (nearly) correct are supported by transfer bootstrap while they are not by Felsenstein's method. Though higher, BOOSTER supports are not impeded with falsely supported branches.</p>
   
-
+  <p>
+    To run BOOSTER you need two files, one with the reference tree inferred using your favorite method, the second with the bootstrap trees inferred using the same method from the bootstrapped alignments.
+  </p>
+  
   <p><u>Contacts</u>: frederic[dot]lemoine[at]pasteur[dot]fr and olivier[dot]gascuel[at]pasteur[dot]fr, Unit&eacute; Bioinformatique &Eacute;volutive, C3BI USR 3756, Institut Pasteur and CNRS, Paris, France </p>
 
   <p>If you want to learn more about BOOSTER, you may read the <a href="/help">help page</a>.</p><br/>
