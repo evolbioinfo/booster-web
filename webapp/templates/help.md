@@ -68,7 +68,7 @@ iqtree-omp -wbt -s align.phy -m GTR -bb 100 -nt 5
 ## Installing a local version of the web interface
 
 The web interface has been developped in Go, and in thus executable on any platform (Linux, MacOS, and Windows).
-The only thing to do is downloading the latest release of BoosterWeb on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clinking the executable.
+The only thing to do is downloading the latest release of BoosterWeb on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by cliking the executable.
 
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
