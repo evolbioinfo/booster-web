@@ -56,6 +56,9 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * logfile= "[stderr|stdout|/path/to/logfile]"
 * http
   * port=[http server listening port]
+* authentication
+  * user="[global username]"
+  * password="[global password]"
   
 And run booster web: `booster-web --config booster-web.toml`
 

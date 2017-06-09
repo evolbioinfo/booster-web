@@ -27,6 +27,11 @@ type MarkDownPage struct {
 	Md string
 }
 
+type GenericResponse struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+}
+
 func errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "text/html")
 	if t, err2 := getTemplate("error"); err2 != nil {
@@ -42,6 +47,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	var info interface{}
 	if t, err := getTemplate("index"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", info); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	var info interface{}
+	if t, err := getTemplate("login"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		if err := t.ExecuteTemplate(w, "layout", info); err != nil {
@@ -347,4 +364,14 @@ func getTemplate(name string) (*template.Template, error) {
 		return nil, errors.New("No template named " + name)
 	}
 	return t, nil
+}
+
+func apiError(res http.ResponseWriter, err error) {
+	answer := GenericResponse{
+		1,
+		err.Error(),
+	}
+	if err := json.NewEncoder(res).Encode(answer); err != nil {
+		io.LogError(err)
+	}
 }

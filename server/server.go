@@ -75,6 +75,7 @@ func InitServer(cfg config.Provider) {
 	initDB(cfg)
 	initProcessor(cfg)
 	initCleanKill()
+	initLogin(cfg)
 
 	templatePath = "webapp" + string(os.PathSeparator) + "templates" + string(os.PathSeparator)
 
@@ -101,6 +102,10 @@ func InitServer(cfg config.Provider) {
 	helptpl, err6 := templates.Asset(templatePath + "help.html")
 	if err6 != nil {
 		log.Fatal(err6)
+	}
+	logintpl, err7 := templates.Asset(templatePath + "login.html")
+	if err7 != nil {
+		log.Fatal(err7)
 	}
 
 	templatesMap = make(map[string]*template.Template)
@@ -135,17 +140,27 @@ func InitServer(cfg config.Provider) {
 		templatesMap["help"] = t
 	}
 
+	if t, err := template.New("login").Parse(string(layouttpl) + string(logintpl)); err != nil {
+		log.Fatal(err)
+	} else {
+		templatesMap["login"] = t
+	}
+
 	/* HTML handlers */
-	http.HandleFunc("/new/", newHandler)                /* Handler for input form */
-	http.HandleFunc("/run", runHandler)                 /* Handler for running a new analysis */
-	http.HandleFunc("/help", helpHandler)               /* Handler for the help page */
-	http.HandleFunc("/view/", makeHandler(viewHandler)) /* Handler for viewing analysis results */
-	http.HandleFunc("/itol/", makeHandler(itolHandler)) /* Handler for uploading tree to itol */
-	http.HandleFunc("/", indexHandler)                  /* Home Page*/
+	http.HandleFunc("/new/", validateHtml(newHandler))                /* Handler for input form */
+	http.HandleFunc("/run", validateHtml(runHandler))                 /* Handler for running a new analysis */
+	http.HandleFunc("/help", validateHtml(helpHandler))               /* Handler for the help page */
+	http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler))) /* Handler for viewing analysis results */
+	http.HandleFunc("/itol/", validateHtml(makeHandler(itolHandler))) /* Handler for uploading tree to itol */
+	http.HandleFunc("/", validateHtml(indexHandler))                  /* Home Page*/
+	http.HandleFunc("/login", loginHandler)                           /* Handler for login */
+	http.HandleFunc("/settoken", setToken)                            /* Set token in cookie via form post */
+	http.HandleFunc("/gettoken", getToken)                            /* get token via api using json post data */
+	http.HandleFunc("/logout", validateHtml(logout))                  /* Handler for logout */
 
 	/* Api handlers */
-	http.HandleFunc("/api/analysis/", makeApiHandler(apiAnalysisHandler)) /* Handler for returning an analysis */
-	http.HandleFunc("/api/image/", makeApiImageHandler(apiImageHandler))  /* Handler for returning a tree image */
+	http.HandleFunc("/api/analysis/", validateApi(makeApiHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
+	http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))  /* Handler for returning a tree image */
 
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.FileServer(static.AssetFS()))
@@ -273,6 +288,16 @@ func initLog(cfg config.Provider) {
 		}
 	}
 	log.SetOutput(logfile)
+}
+
+func initLogin(cfg config.Provider) {
+	user := cfg.GetString("authentication.user")
+	pass := cfg.GetString("authentication.password")
+	if user != "" && pass != "" {
+		Authent = true
+		Username = user
+		Password = pass
+	}
 }
 
 /*Algorithm: booster or classical */

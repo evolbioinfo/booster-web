@@ -1,0 +1,17 @@
+{{ define "title" }}
+BOOTSER - Login page
+{{ end }}
+
+{{ define "libs" }}
+{{ end }}
+
+{{ define "content" }}
+    <form action="settoken" method="post">
+      User: <br/>
+      <input type="text" id="user" name="user" /><br/>
+      Pass: <br/>
+      <input type="password" id="pass" name="pass" /><br/>
+      <input type="submit" value="login"/>
+      </form>
+  </body>
+{{ end }}
