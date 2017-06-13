@@ -72,6 +72,7 @@ You may try BOOSTER-WEB with the following trees inferred from primate nt alignm
 * 1000 Bootstrap trees: [.nw.gz](/static/files/primates/boot.nw.gz)
 
 If you want to also infer reference and bootstrap trees prior to using BOOSTER-WEB:
+
 * Original alignment: [.phy.gz](/static/files/primates/DNA_primates.phy)
 * Nextflow workflow: [.nf](/static/files/primates/primates.nf) (`nextflow run primates.nf` to run it)
 
