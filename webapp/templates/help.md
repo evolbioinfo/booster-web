@@ -64,6 +64,26 @@ iqtree-omp -wbt -s align.phy -m GTR -bb 100 -nt 5
 # Output Bootstrap trees: align.phy.ufboot
 ```
 
+## Example dataset
+
+You may try BOOSTER-WEB with the following trees inferred from primate nt alignment taken from ["The Phylogenetic Handbook"](http://www.cambridge.org/catalogue/catalogue.asp?isbn=9780521877107):
+
+* Reference tree: [.nw.gz](/static/files/primates/ref.nw.gz)
+* 1000 Bootstrap trees: [.nw.gz](/static/files/primates/boot.nw.gz)
+
+If you want to also infer reference and bootstrap trees prior to using BOOSTER-WEB:
+* Original alignment: [.phy.gz](/static/files/primates/DNA_primates.phy)
+* Nextflow workflow: [.nf](/static/files/primates/primates.nf) (`nextflow run primates.nf` to run it)
+
+
+After computing TBE and FBP using BOOSTER-WEB, you should obtain trees like the followings:
+
+* TBE
+![TBE](/static/files/primates/TBE.png)
+
+* FBP
+![FBP](/static/files/primates/FBP.png)
+
 
 ## Installing a local version of the web interface
 
