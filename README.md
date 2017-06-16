@@ -21,6 +21,7 @@ go get github.com/jteeuwen/go-bindata/...
 go get github.com/elazarl/go-bindata-assetfs/...
 go get github.com/dgrijalva/jwt-go
 go get github.com/fredericlemoine/golaxy
+go get github.com/fredericlemoine/gotree
 go get github.com/go-sql-driver/mysql
 ```
 
