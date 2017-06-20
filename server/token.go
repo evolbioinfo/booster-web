@@ -72,9 +72,9 @@ func setToken(res http.ResponseWriter, req *http.Request) {
 		http.SetCookie(res, &cookie)
 
 		// Redirect the user to root
-		http.Redirect(res, req, "/", 307)
+		http.Redirect(res, req, "/", http.StatusFound)
 	} else {
-		http.Redirect(res, req, "/login", 307)
+		http.Redirect(res, req, "/login", http.StatusFound)
 	}
 }
 
@@ -128,7 +128,7 @@ func validateHtml(page http.HandlerFunc) http.HandlerFunc {
 			// If no Auth cookie is set then go to login
 			cookie, err := req.Cookie("Auth")
 			if err != nil {
-				http.Redirect(res, req, "/login", 307)
+				http.Redirect(res, req, "/login", http.StatusFound)
 				return
 			}
 
@@ -141,7 +141,7 @@ func validateHtml(page http.HandlerFunc) http.HandlerFunc {
 				return mySigningKey, nil
 			})
 			if err != nil {
-				http.Redirect(res, req, "/login", 307)
+				http.Redirect(res, req, "/login", http.StatusFound)
 				return
 			}
 
@@ -150,7 +150,7 @@ func validateHtml(page http.HandlerFunc) http.HandlerFunc {
 				ctx := context.WithValue(req.Context(), MyKey, *claims)
 				page(res, req.WithContext(ctx))
 			} else {
-				http.Redirect(res, req, "/login", 307)
+				http.Redirect(res, req, "/login", http.StatusFound)
 				return
 			}
 		})
@@ -218,7 +218,7 @@ func validateApi(page http.HandlerFunc) http.HandlerFunc {
 func protectedProfile(res http.ResponseWriter, req *http.Request) {
 	claims, ok := req.Context().Value(MyKey).(Claims)
 	if !ok {
-		http.Redirect(res, req, "/login", 307)
+		http.Redirect(res, req, "/login", http.StatusFound)
 		return
 	}
 
@@ -228,7 +228,7 @@ func protectedProfile(res http.ResponseWriter, req *http.Request) {
 func logout(res http.ResponseWriter, req *http.Request) {
 	deleteCookie := http.Cookie{Name: "Auth", Value: "none", Expires: time.Now()}
 	http.SetCookie(res, &deleteCookie)
-	http.Redirect(res, req, "/", 307)
+	http.Redirect(res, req, "/", http.StatusFound)
 	return
 }
 
