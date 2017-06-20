@@ -1,20 +1,31 @@
-# booster-web: Web interface to [BOOSTER](http://booster.c3bi.pasteur.fr)
+# BOOSTER-WEB: Web interface to [BOOSTER](http://booster.c3bi.pasteur.fr)
 This interface presents informations about BOOSTER program, and allows to run BOOSTER easily.
 
-# Installing booster-web
+# Installing BOOSTER-WEB
 ## Already compiled
 Download a release in the [release](https://github.com/fredericlemoine/booster-web/releases) section. You can directly run the executable for your platform.
 
 ## From source
-To compile booster-web, you must [download](https://golang.org/dl/) and [install](https://golang.org/doc/install) Go on your system.
+To compile BOOSTER-WEB, you must [download](https://golang.org/dl/) and [install](https://golang.org/doc/install) Go on your system.
 
 Then you just have to type :
 ```
 go get github.com/fredericlemoine/booster-web/
 ```
-This will download booster-web sources from github, and its dependencies.
+This will download BOOSTER-WEB sources from github, and its dependencies.
 
-You can then build it with:
+If you cloned the repository and want to install dependencies manually:
+
+```bash
+go get github.com/jteeuwen/go-bindata/...
+go get github.com/elazarl/go-bindata-assetfs/...
+go get github.com/dgrijalva/jwt-go
+go get github.com/fredericlemoine/golaxy
+go get github.com/fredericlemoine/gotree
+go get github.com/go-sql-driver/mysql
+```
+
+You can then build BOOSTER-WEB with:
 ```
 cd $GOPATH/src/github.com/fredericlemoine/booster-web/
 make
@@ -22,7 +33,7 @@ make
 
 The `booster-web` executable should be located in the `$GOPATH/bin` folder.
 
-# Running booster-web
+# Running BOOSTER-WEB
 ## Default configuration
 You can directly run the `booster-web` executable without any configuration. It will setup a web server with the following default properties:
 * Run on localhost, port 8080
