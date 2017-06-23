@@ -26,19 +26,19 @@ phyml -i align.phy -d nt -b 100 -m GTR -f e -t e -c 6 -a e -s BEST -o tlr
 # Output Bootstrap trees: align.phy_phyml_boot_trees.txt
 ```
 
-* RAxML: FBP with RAxML. Input file: alignment, Phylip format
+* RAxML: Standard bootstrap. Input file: alignment, Phylip format
 ```bash
-# Build reference tree
+# Infer reference tree
 raxmlHPC -m GTRGAMMA -p $RANDOM -s align.phy -n REF
-# Build bootstrap trees
+# Infer bootstrap trees
 raxmlHPC -m GTRGAMMA -p $RANDOM -b $RANDOM -# 100 -s align.phy -n BOOT
 # Output Reference tree: RAxML_bestTree.REF
 # Output Bootstrap trees: RAxML_bootstrap.BOOT
 ```
 
-* RAxML: Booster supports and rapid bootstrap. Input file: alignment, Phylip format
+* RAxML: Rapid bootstrap. Input file: alignment, Phylip format
 ```bash
-# Build reference tree + bootstrap trees
+# Infer reference tree + bootstrap trees
 raxmlHPC -f a -m GTRGAMMA -c 4 -s align.phy -n align -T 4 -p $RANDOM -x $RANDOM -# 100
 # Output Reference tree: RAxML_bestTree.align
 # Output Bootstrap trees: RAxML_bootstrap.align
@@ -48,9 +48,9 @@ raxmlHPC -f a -m GTRGAMMA -c 4 -s align.phy -n align -T 4 -p $RANDOM -x $RANDOM 
 ```bash
 # Build bootstrap alignments
 goalign build seqboot -i align.phy -p -n 100 -o boot -S
-# Build reference tree
+# Infer reference tree
 FastTree -nt -gtr align.phy > ref.nhx
-# Build bootstrap trees
+# Infer bootstrap trees
 cat boot*.ph | FastTree -nt -n 100 -gtr > boot.nhx
 # Output Reference tree: ref.nhx
 # Output Bootstrap trees: boot.nhx
@@ -97,13 +97,13 @@ Then open a web browser to the url [http://localhost:8080](http://localhost:8080
 BOOSTER is also available as a standalone executable (implemented in C). Sources and binaries are available on [Github](https://github.com/evolbioinfo/booster).
 
 ```
-Usage: ./booster -i <tree file> -b <bootstrap prefix or file> [-d <dist_cutoff> -r <raw distance output tree file> -@ <cpus>  -S <stat file> -o <output tree> -v]
+Usage: ./booster -i <reference tree file (newick)> -b <bootstrap tree file (newick)> [-d <dist_cutoff> -r <raw distance output tree file> -@ <cpus>  -S <stat file> -o <output tree> -v]
 Options:
-      -i : Input tree file
-      -b : Bootstrap tree file (1 file containing all bootstrap trees)
+      -i : Input reference tree file
+      -b : Input bootstrap tree file (1 file containing all bootstrap trees)
       -o : Output file (optional), default : stdout
-      -r, --out-raw : Output file (only with tbe, optional) with raw transfer distance as support values in the form of
-                       avgdist|depth, default : none
+      -r, --out-raw : Output file (only tbe, optional) with raw transfer distance as support values in the form of
+                       id|avgdist|depth, default : none
       -@ : Number of threads (default 1)
       -a, --algo  : bootstrap algorithm, tbe or fbp (default tbe)
       -S : Prints output logs in the given output file (average raw min transfer distance per branches, and average
