@@ -94,23 +94,27 @@ The only thing to do is downloading the latest release of BoosterWeb on [Github]
 Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
 
 ## <a name="commandline"></a>Computing transfer supports via command line
-BOOSTER has initially been implemented in C, and is available on [Github](https://github.com/evolbioinfo/booster).
+BOOSTER is also available as a standalone executable (implemented in C). Sources and binaries are available on [Github](https://github.com/evolbioinfo/booster).
 
 ```
-Usage: booster -i <tree file> -b <bootstrap prefix or file> [-@ <cpus>  -S <stat file> -o <output tree> -v]
+Usage: ./booster -i <tree file> -b <bootstrap prefix or file> [-d <dist_cutoff> -r <raw distance output tree file> -@ <cpus>  -S <stat file> -o <output tree> -v]
 Options:
-	-i, --input      : Input tree file
-	-b, --boot       : Bootstrap tree file (1 file containing all bootstrap trees)
-	-o, --out        : Output file (optional), default : stdout
-	-@, --num-threads: Number of threads (default 1)
-	-S, --stat-file  : Prints output statistics for each branch in the given output file
-	-a, --algo       : tbe or fbp (default tbe
-	-q, --quiet      : Does not print progress messages during analysis
-	-v, --version    : Prints version (optional)
-	-h, --help       : Prints this help
+      -i : Input tree file
+      -b : Bootstrap tree file (1 file containing all bootstrap trees)
+      -o : Output file (optional), default : stdout
+      -r, --out-raw : Output file (only with tbe, optional) with raw transfer distance as support values in the form of
+                       avgdist|depth, default : none
+      -@ : Number of threads (default 1)
+      -a, --algo  : bootstrap algorithm, tbe or fbp (default tbe)
+      -S : Prints output logs in the given output file (average raw min transfer distance per branches, and average
+      	   transfer index per taxa)
+      -d, --dist-cutoff: Distance cutoff to consider a branch for moving taxa computation (tbe only, default 0.3)
+      -q, --quiet : Does not print progress messages during analysis
+      -v : Prints version (optional)
+      -h : Prints this help
 ```
 
-All information for installation is available on the github page.
+All information for installation and usage is available on the [GitHub page](https://github.com/evolbioinfo/booster).
 
 
 ## Supplementary materials
