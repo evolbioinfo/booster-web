@@ -103,7 +103,7 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
 				go func() {
-					refTree, err := utils.ReadTree(a.Reffile)
+					refTree, err := utils.ReadTree(a.Reffile, utils.FORMAT_NEWICK)
 					if err != nil {
 						io.LogError(err)
 						a.Message = err.Error()
@@ -118,7 +118,7 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 							a.Status = model.STATUS_ERROR
 							a.StatusStr = model.StatusStr(a.Status)
 						} else {
-							treeChannel := utils.ReadMultiTrees(treereader)
+							treeChannel := utils.ReadMultiTrees(treereader, utils.FORMAT_NEWICK)
 
 							err3 := support.ComputeSupport(refTree, treeChannel, os.Stderr, jobthreads, supporter)
 							a.End = time.Now().Format(time.RFC1123)

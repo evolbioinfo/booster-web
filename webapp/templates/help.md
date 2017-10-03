@@ -21,7 +21,7 @@ Clicking on the "run" button will launch the analysis and take you to the result
 
 * PhyML: PhyML already generates bootstrap trees. Input file: alignment, Phylip format
 ```bash
-phyml -i align.phy -d nt -b 100 -m GTR -f e -t e -c 6 -a e -s BEST -o tlr 
+phyml -i align.phy -d nt -b 100 -m GTR -f e -t e -c 6 -a e -s SPR -o tlr 
 # Output Reference tree: align.phy_phyml_tree.txt
 # Output Bootstrap trees: align.phy_phyml_boot_trees.txt
 ```
@@ -116,6 +116,14 @@ Options:
 
 All information for installation and usage is available on the [GitHub page](https://github.com/evolbioinfo/booster).
 
+## <a name="note"></a>Note
+PhyML can also directly compute TBE supports (beta). To do so, you will need to download and install PhyML from its [github repository](https://github.com/stephaneguindon/phyml/):
 
-## Supplementary materials
+```bash
+phyml -i align.phy -d nt -b 100 --tbe -m GTR -f e -t e -c 6 -a e -s SPR -o tlr 
+# Output tree with supports: align.phy_phyml_tree.txt
+```
+
+
+## <a name="suppmat"></a>Supplementary materials
 All data and workflows described in the article are available on [Github](https://github.com/evolbioinfo/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
