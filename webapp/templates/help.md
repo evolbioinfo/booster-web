@@ -97,17 +97,18 @@ Then open a web browser to the url [http://localhost:8080](http://localhost:8080
 BOOSTER is also available as a standalone executable (implemented in C). Sources and binaries are available on [Github](https://github.com/evolbioinfo/booster).
 
 ```
-Usage: ./booster -i <reference tree file (newick)> -b <bootstrap tree file (newick)> [-d <dist_cutoff> -r <raw distance output tree file> -@ <cpus>  -S <stat file> -o <output tree> -v]
+Usage: ./booster -i <ref tree file (newick)> -b <bootstrap tree file (newick)> [-d <dist_cutoff> -r <raw distance output tree file> -@ <cpus>  -S <stat file> -o <output tree> -v]
 Options:
-      -i : Input reference tree file
-      -b : Input bootstrap tree file (1 file containing all bootstrap trees)
+      -i : Input tree file
+      -b : Bootstrap tree file (1 file containing all bootstrap trees)
+      -a, --algo  : bootstrap algorithm, tbe (transfer bootstrap) or fbp (Felsenstein bootstrap) (default tbe)
       -o : Output file (optional), default : stdout
-      -r, --out-raw : Output file (only tbe, optional) with raw transfer distance as support values in the form of
+      -r, --out-raw : Output file (only with tbe, optional) with raw transfer distance as support values in the form of
                        id|avgdist|depth, default : none
       -@ : Number of threads (default 1)
-      -a, --algo  : bootstrap algorithm, tbe or fbp (default tbe)
       -S : Prints output logs in the given output file (average raw min transfer distance per branches, and average
       	   transfer index per taxa)
+      -c, --count-per-branch : Prints individual taxa moves for each branches in the log file (only with -S and -a tbe)
       -d, --dist-cutoff: Distance cutoff to consider a branch for moving taxa computation (tbe only, default 0.3)
       -q, --quiet : Does not print progress messages during analysis
       -v : Prints version (optional)
@@ -126,4 +127,4 @@ phyml -i align.phy -d nt -b 100 --tbe -m GTR -f e -t e -c 6 -a e -s SPR -o tlr
 
 
 ## <a name="suppmat"></a>Supplementary materials
-All data and workflows described in the article are available on [Github](https://github.com/evolbioinfo/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows.
+Workflows described in the article are available on [Github](https://github.com/evolbioinfo/booster-workflows) as [Nextflow](https://www.nextflow.io/) workflows, and data are located on the [release](https://github.com/evolbioinfo/booster-workflows/releases/latest) page.
