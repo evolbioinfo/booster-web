@@ -152,16 +152,38 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		}
 		switch state {
 		case "ok":
-			id, ok := files["support"]
-			if !ok {
-				err = errors.New("Output file not present in the galaxy server")
+			var ok bool
+			var id string
+			// Normalized suport tree file
+			if id, ok = files["support"]; !ok {
+				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
 				return
 			}
-			outcontent, err = p.galaxy.DownloadFile(historyid, id)
-			if err != nil {
+			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
 				return
 			}
 			a.Result = string(outcontent)
+
+			// Raw average distance tree file
+			if id, ok = files["avgdist"]; !ok {
+				err = errors.New("Output file (raw distance tree) not present in the galaxy server")
+				return
+			}
+			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
+				return
+			}
+			a.RawTree = string(outcontent)
+
+			// Log file
+			if id, ok = files["boosterlog"]; !ok {
+				err = errors.New("Output file (log file) not present in the galaxy server")
+				return
+			}
+			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
+				return
+			}
+			a.ResLogs = string(outcontent)
+
 			a.Status = model.STATUS_FINISHED
 			a.StatusStr = model.StatusStr(a.Status)
 			a.End = time.Now().Format(time.RFC1123)
