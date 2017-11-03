@@ -45,17 +45,19 @@ type MySQLBoosterwebDB struct {
 }
 
 type dbanalysis struct {
-	id           string `mysql-type:varchar(100)`
-	reffile      string `mysql-type:blob`
-	bootfile     string `mysql-type:blob`
-	results      string `mysql-type:longtext`
-	status       int    `mysql-type:int`
-	algorithm    int    `mysql-type:int`
-	message      string `mysql-type:message`
-	nboot        int    `mysql-type:int`
-	startpending string `mysql-type:varchar(100)`
-	startrunning string `mysql-type:varchar(100)`
-	end          string `mysql-type:varchar(100)`
+	id           string `mysql-type:varchar(100)` // Id of the analysis
+	reffile      string `mysql-type:blob`         // reference tree file
+	bootfile     string `mysql-type:blob`         // boot tree file
+	results      string `mysql-type:longtext`     // result tree with normalize supports
+	rawtree      string `mysql-type:longtext`     // result tree with raw <id|avg_dist|depth> as branch names
+	reslogs      string `mysql-type:longtext`     // log file
+	status       int    `mysql-type:int`          // Status of the analysis
+	algorithm    int    `mysql-type:int`          // Algorithm used
+	message      string `mysql-type:message`      // Optional message
+	nboot        int    `mysql-type:int`          // number of bootstrap trees
+	startpending string `mysql-type:varchar(100)` // date of job being submited
+	startrunning string `mysql-type:varchar(100)` // date of job being running
+	end          string `mysql-type:varchar(100)` // date of job finished
 }
 
 /* Returns a new database */
@@ -94,7 +96,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT id,reffile,bootfile,results,status,algorithm,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
+	rows, err := db.db.Query("SELECT id,reffile,bootfile,results,rawtree,reslogs,status,algorithm,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +104,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 
 	dban := dbanalysis{}
 	if rows.Next() {
-		if err := rows.Scan(&dban.id, &dban.reffile, &dban.bootfile, &dban.results,
+		if err := rows.Scan(&dban.id, &dban.reffile, &dban.bootfile, &dban.results, &dban.rawtree, &dban.reslogs,
 			&dban.status, &dban.algorithm, &dban.message, &dban.nboot, &dban.startpending,
 			&dban.startrunning, &dban.end); err != nil {
 			return nil, err
@@ -120,6 +122,8 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 		dban.reffile,
 		dban.bootfile,
 		dban.results,
+		dban.rawtree,
+		dban.reslogs,
 		dban.status,
 		dban.algorithm,
 		model.StatusStr(dban.status),
@@ -142,9 +146,10 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		return errors.New("Database not opened")
 	}
 	query := `INSERT INTO analysis 
-                    (id, reffile, bootfile, results, status, algorithm, message, nboot, startpending, startrunning , end) 
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?) 
-                  ON DUPLICATE KEY UPDATE results=values(results), status=values(status), algorithm=values(algorithm),
+                    (id, reffile, bootfile, results, rawtree, reslogs, status, algorithm, message, nboot, startpending, startrunning , end) 
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) 
+                  ON DUPLICATE KEY UPDATE results=values(results), rawtree=values(rawtree), reslogs=values(reslogs), 
+                                          status=values(status), algorithm=values(algorithm),
                                           message=values(message), nboot=values(nboot), 
                                           startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
 	_, err := db.db.Exec(
@@ -153,6 +158,8 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		a.Reffile,
 		a.Bootfile,
 		a.Result,
+		a.RawTree,
+		a.ResLogs,
 		a.Status,
 		a.Algorithm,
 		a.Message,
@@ -168,7 +175,7 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 func (db *MySQLBoosterwebDB) InitDatabase() error {
 	log.Print("Initializing mysql Database")
 	_, err := db.db.Exec(
-		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results longtext, status int, algorithm int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
+		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results longtext, rawtree longtext, reslogs longtext, status int, algorithm int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
 
 	if err == nil {
 		err = db.checkColumns()
@@ -176,7 +183,7 @@ func (db *MySQLBoosterwebDB) InitDatabase() error {
 	return err
 }
 
-/* Check if table has all the columns, otherwize adds them */
+/* Check if table has all the columns, otherwise adds them */
 func (db *MySQLBoosterwebDB) checkColumns() error {
 	log.Print("Checking database tables")
 

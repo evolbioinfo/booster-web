@@ -56,8 +56,21 @@ BOOSTER - Results {{.Id}}
 <div class="panel panel-default">
   <div class="panel-heading">Downloads</div>
   <div class="panel-body">
-    <a class="label label-warning" target="_blank" href="/itol/{{.Id}}">Export to iTOL</a>
-    <a class="label label-default" onclick="downloadTree({{.Id}})">Download newick</a>
+    <ul>
+      <li>Tree with normalized supports<br/>
+	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false">Export to iTOL</a>
+	<a class="label label-default" onclick="downloadNormTree({{.Id}})">Download tree (newick)</a>
+      </li>
+      {{if (eq .Algorithm 6) }}
+      <li>Tree with raw average transfer distances (and branch ids)<br/>
+	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/true">Export to iTOL</a>
+	<a class="label label-default" onclick="downloadRawTree({{.Id}})">Download tree (newick)</a>
+      </li>
+      <li>Logs<br/>
+	<a class="label label-info" onclick="downloadLogs({{.Id}})">Download logs</a>
+      </li>
+      {{ end }}
+    </ul>
   </div>
 </div>
 

@@ -156,16 +156,16 @@ func InitServer(cfg config.Provider) {
 	}
 
 	/* HTML handlers */
-	http.HandleFunc("/new/", validateHtml(newHandler))                /* Handler for input form */
-	http.HandleFunc("/run", validateHtml(runHandler))                 /* Handler for running a new analysis */
-	http.HandleFunc("/help", validateHtml(helpHandler))               /* Handler for the help page */
-	http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler))) /* Handler for viewing analysis results */
-	http.HandleFunc("/itol/", validateHtml(makeHandler(itolHandler))) /* Handler for uploading tree to itol */
-	http.HandleFunc("/", validateHtml(indexHandler))                  /* Home Page*/
-	http.HandleFunc("/login", loginHandler)                           /* Handler for login */
-	http.HandleFunc("/settoken", setToken)                            /* Set token in cookie via form post */
-	http.HandleFunc("/gettoken", getToken)                            /* get token via api using json post data */
-	http.HandleFunc("/logout", validateHtml(logout))                  /* Handler for logout */
+	http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
+	http.HandleFunc("/run", validateHtml(runHandler))                        /* Handler for running a new analysis */
+	http.HandleFunc("/help", validateHtml(helpHandler))                      /* Handler for the help page */
+	http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler)))        /* Handler for viewing analysis results */
+	http.HandleFunc("/itol/", validateHtml(makeRawNormHandler(itolHandler))) /* Handler for uploading tree to itol */
+	http.HandleFunc("/", validateHtml(indexHandler))                         /* Home Page*/
+	http.HandleFunc("/login", loginHandler)                                  /* Handler for login */
+	http.HandleFunc("/settoken", setToken)                                   /* Set token in cookie via form post */
+	http.HandleFunc("/gettoken", getToken)                                   /* get token via api using json post data */
+	http.HandleFunc("/logout", validateHtml(logout))                         /* Handler for logout */
 
 	/* Api handlers */
 	http.HandleFunc("/api/analysis/", validateApi(makeApiHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
@@ -321,6 +321,8 @@ func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfi
 
 	a := &model.Analysis{
 		uuid,
+		"",
+		"",
 		"",
 		"",
 		"",

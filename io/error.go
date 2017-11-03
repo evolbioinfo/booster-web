@@ -48,3 +48,6 @@ func LogError(err error) {
 	name := strings.Split(fn, "/booster-web/")[1]
 	log.Printf("[Error] in %s (line %d), message: %v\n", name, line, err)
 }
+func LogInfo(message string) {
+	log.Printf("[Info] message: %v\n", message)
+}

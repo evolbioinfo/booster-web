@@ -25,6 +25,7 @@ package processor
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"runtime"
@@ -116,12 +117,18 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 				a.StatusStr = model.StatusStr(a.Status)
 
 				if a.Algorithm == model.ALGORITHM_BOOSTER {
-					supporter = support.NewBoosterSupporter(true, false, 0.05)
+					io.LogInfo("Booster supporter")
+					supporter = support.NewBoosterSupporter(true, true, false, true, 0.3, false)
 				} else if a.Algorithm == model.ALGORITHM_CLASSICAL {
+					io.LogInfo("Classical supporter")
 					supporter = support.NewClassicalSupporter(true)
 				}
 				finished := false
-				p.db.UpdateAnalysis(a)
+				er := p.db.UpdateAnalysis(a)
+				if er != nil {
+					io.LogError(er)
+					continue
+				}
 				p.newRunningJob(a)
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
@@ -142,31 +149,62 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 							a.StatusStr = model.StatusStr(a.Status)
 						} else {
 							treeChannel := utils.ReadMultiTrees(treereader, utils.FORMAT_NEWICK)
-
-							err3 := support.ComputeSupport(refTree, treeChannel, os.Stderr, jobthreads, supporter)
-							a.End = time.Now().Format(time.RFC1123)
-
-							if err3 != nil {
-								io.LogError(err3)
-								a.Message = err3.Error()
+							tmpfile, err4 := ioutil.TempFile("", "booster_log")
+							defer os.Remove(tmpfile.Name()) // clean up
+							if err4 != nil {
+								io.LogError(err4)
+								a.Message = err4.Error()
 								a.Status = model.STATUS_ERROR
 								a.StatusStr = model.StatusStr(a.Status)
 							} else {
-								if supporter.Canceled() {
-									a.Status = model.STATUS_TIMEOUT
+								err3 := support.ComputeSupport(refTree, treeChannel, tmpfile, jobthreads, supporter)
+								a.End = time.Now().Format(time.RFC1123)
+								tmpfile.Close()
+								if err3 != nil {
+									io.LogError(err3)
+									a.Message = err3.Error()
+									a.Status = model.STATUS_ERROR
 									a.StatusStr = model.StatusStr(a.Status)
 								} else {
-									a.Status = model.STATUS_FINISHED
-									a.StatusStr = model.StatusStr(a.Status)
+									if supporter.Canceled() {
+										a.Status = model.STATUS_TIMEOUT
+										a.StatusStr = model.StatusStr(a.Status)
+									} else {
+										a.Status = model.STATUS_FINISHED
+										a.StatusStr = model.StatusStr(a.Status)
+									}
+									refTree.ClearPvalues()
+
+									if a.Algorithm == model.ALGORITHM_BOOSTER {
+										// We  print the raw support tree first
+										reformated := refTree.Clone()
+										support.ReformatAvgDistance(reformated)
+										a.RawTree = reformated.Newick()
+										// We normalize the supports and save the tree
+										support.NormalizeTransferDistancesByDepth(refTree)
+									} else {
+										a.RawTree = ""
+									}
+									dat, err5 := ioutil.ReadFile(tmpfile.Name())
+									if err5 != nil {
+										io.LogError(err5)
+										a.Message = err5.Error()
+										a.Status = model.STATUS_ERROR
+										a.StatusStr = model.StatusStr(a.Status)
+									} else {
+										a.ResLogs = string(dat)
+										a.Result = refTree.Newick()
+										a.Collapsed = a.Result
+										a.Message = "Finished"
+									}
 								}
-								refTree.ClearPvalues()
-								a.Result = refTree.Newick()
-								a.Collapsed = a.Result
-								a.Message = "Finished"
 							}
 						}
 					}
-					p.db.UpdateAnalysis(a)
+					er := p.db.UpdateAnalysis(a)
+					if er != nil {
+						io.LogError(er)
+					}
 					p.rmRunningJob(a)
 					a.DelTemp()
 					wg.Done()

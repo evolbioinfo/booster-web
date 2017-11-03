@@ -49,6 +49,8 @@ type Analysis struct {
 	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
 	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
 	Result       string `json:"result"`       // resulting newick tree with support
+	RawTree      string `json:"rawtree"`      // result tree with raw <id|avg_dist|depth> as branch names
+	ResLogs      string `json:"reslogs"`      // log file
 	Status       int    `json:"status"`       // status code of the analysis
 	Algorithm    int    `json:"algorithm"`    // Algorithm : ALGORITHM_CLASSICAL or ALGORITHM_BOOSTER
 	StatusStr    string `json:"statusstr"`    // status of the analysis (string)

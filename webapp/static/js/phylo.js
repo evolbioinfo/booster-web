@@ -56,7 +56,7 @@ function updateTreeCanvas(){
     });
 }
 
-function downloadTree(id){
+function downloadNormTree(id){
     $.ajax({
 	url: "/api/analysis/"+id+"/0",
 	dataType: 'json',
@@ -64,7 +64,35 @@ function downloadTree(id){
  	success: function(data) {
 	    var analysis = data;
 	    if(analysis.status == 2 || analysis.status == 5){
-		download(analysis.result, "bootstrap.nh", "text/plain");
+		download(analysis.result, "bootstrap_norm.nh", "text/plain");
+	    }
+	}
+    });
+}
+
+function downloadRawTree(id){
+    $.ajax({
+	url: "/api/analysis/"+id+"/0",
+	dataType: 'json',
+ 	async: true,
+ 	success: function(data) {
+	    var analysis = data;
+	    if(analysis.status == 2 || analysis.status == 5){
+		download(analysis.rawtree, "bootstrap_avgdist.nh", "text/plain");
+	    }
+	}
+    });
+}
+
+function downloadLogs(id){
+    $.ajax({
+	url: "/api/analysis/"+id+"/0",
+	dataType: 'json',
+ 	async: true,
+ 	success: function(data) {
+	    var analysis = data;
+	    if(analysis.status == 2 || analysis.status == 5){
+		download(analysis.reslogs, "bootstrap_logs.txt", "text/plain");
 	    }
 	}
     });

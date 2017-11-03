@@ -128,7 +128,9 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 }
 
-func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
+// if rawsupports: Then the tree with raw distances and branch ids is uploaded to itol
+// else the normalized support tree is upploaded.
+func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances bool) {
 	a, err := getAnalysis(id)
 	if err != nil {
 		io.LogError(err)
@@ -137,22 +139,28 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
-		t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+		var uptree string
+		if rawdistances && a.RawTree != "" {
+			uptree = a.RawTree
+		} else {
+			uptree = a.Result
+		}
+		t, err := newick.NewParser(strings.NewReader(uptree)).Parse()
 		if err == nil {
 			t.ClearPvalues()
-			a.Result = t.Newick()
+			url, _, err := upld.UploadNewick(a.Id, t.Newick())
+			if err != nil {
+				io.LogError(err)
+				errorHandler(w, r, err)
+				return
+			}
+			http.Redirect(w, r, url, http.StatusSeeOther)
+			return
 		} else {
-			io.LogError(err)
-		}
-
-		url, _, err := upld.UploadNewick(fmt.Sprintf("%d", a.Id), a.Result)
-		if err != nil {
 			io.LogError(err)
 			errorHandler(w, r, err)
 			return
 		}
-		http.Redirect(w, r, url, http.StatusSeeOther)
-		return
 	}
 	finishederr := errors.New("Analysis is not finished")
 	io.LogError(finishederr)
@@ -230,6 +238,8 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 			"",
 			"",
 			"",
+			"",
+			"",
 			model.STATUS_NOT_EXISTS,
 			model.ALGORITHM_CLASSICAL,
 			model.StatusStr(model.STATUS_NOT_EXISTS),
@@ -264,6 +274,8 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	a, err := getAnalysis(id)
 	if err != nil {
 		a = &model.Analysis{"none",
+			"",
+			"",
 			"",
 			"",
 			"",
@@ -348,6 +360,22 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 			return
 		}
 		fn(w, r, m[2])
+	}
+}
+
+var validRawNormPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)/(true|false)$")
+
+//	* string: Analysis ID
+//	* bool: If raw tree of normalized tree should be retrieved
+func makeRawNormHandler(fn func(http.ResponseWriter, *http.Request, string, bool)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := validRawNormPath.FindStringSubmatch(r.URL.Path)
+		if m == nil {
+			http.NotFound(w, r)
+			return
+		}
+		b, _ := strconv.ParseBool(m[3])
+		fn(w, r, m[2], b)
 	}
 }
 
