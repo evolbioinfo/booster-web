@@ -344,6 +344,10 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if !t.Rooted() {
+			deepest := t.DeepestNode()
+			t.Reroot(deepest)
+		}
 		l.SetSupportCutoff(collapse / 100.0)
 		l.DrawTree(t)
 		encoder.Close()
