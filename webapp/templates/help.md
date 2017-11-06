@@ -11,11 +11,16 @@ Clicking on the "run" button will launch the analysis and take you to the result
 
 1. The analysis will be first pending, waiting for available resources;
 2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
-3. After 1 hour, the analysis is "timedout". It does not mean that it is canceled, but no more bootstrap trees will be taken into account in the support. If you want to analyze a large number of bootstrap trees, we advise to do it through [command-line](#commandline);
+3. After 1 hour, the analysis is "timedout". If you want to analyze a large number of large bootstrap trees, we advise to do it through [command-line](#commandline);
 4. Once the analysis done, result page shows the following panels:
     1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
-    2. Links to export resulting tree to iTOL and to download resulting tree;
-    3. Tree visualizer that allows to highlight branches with a support greater than the cutoff given by the slider.
+    2. Links to download results:
+	   1. Tree with normalized supports (download newick format or upload to iTOL);
+	   2. Tree with branch labels formatted as following: "Branch ID|Average transfer Distance|Depth" (download newick format or upload to iTOL, Only with TBE);
+	   3. Booster log file with 2 parts (Only with TBE):
+		  1. Transfer score per taxa (2 columns, "Taxon : Transfer Score");
+		  2. Most transfered taxa per branch (4 columns: Branch Id\tp\tAverage distance\tsemicolumn separated list of most transfered taxa with their respective transfer index)
+    3. Tree visualizer that highlights branches with a support greater than the cutoff given by the slider.
 
 ## Generating reference and bootstrap trees
 
