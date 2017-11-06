@@ -79,7 +79,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid string, db databa
 	log.Print("Init galaxy processor")
 	log.Print(fmt.Sprintf("Queue size: %d", queuesize))
 	log.Print(fmt.Sprintf("Searching Booster tool : %s", boosterid))
-	if tools, err := p.galaxy.SearchTool(boosterid); err != nil {
+	if tools, err := p.galaxy.SearchToolID(boosterid); err != nil {
 		log.Fatal(err)
 	} else {
 		if len(tools) == 0 {
