@@ -39,6 +39,7 @@ type GalaxyProcessor struct {
 	runningJobs map[string]*model.Analysis
 	galaxy      *golaxy.Galaxy
 	queue       chan *model.Analysis // queue of analyses
+	boosterid   string
 	db          database.BoosterwebDB
 	lock        sync.RWMutex
 }
@@ -61,11 +62,11 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 	return
 }
 
-func (p *GalaxyProcessor) InitProcessor(url, apikey string, db database.BoosterwebDB, queuesize int) {
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid string, db database.BoosterwebDB, queuesize int) {
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
-
+	p.boosterid = boosterid
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
 	}
@@ -77,6 +78,19 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey string, db database.Boosterw
 	}
 	log.Print("Init galaxy processor")
 	log.Print(fmt.Sprintf("Queue size: %d", queuesize))
+	log.Print(fmt.Sprintf("Searching Booster tool : %s", boosterid))
+	if tools, err := p.galaxy.SearchTool(boosterid); err != nil {
+		log.Fatal(err)
+	} else {
+		if len(tools) == 0 {
+			log.Fatal("No tools correspond to the id: " + boosterid)
+		} else {
+			p.boosterid = tools[len(tools)-1]
+		}
+	}
+
+	log.Print(fmt.Sprintf("Booster galaxy tool id: %s", p.boosterid))
+
 	p.queue = make(chan *model.Analysis, queuesize)
 
 	// We initialize computing routines
@@ -111,18 +125,21 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	// We create an history
 	historyid, err = p.galaxy.CreateHistory("Booster History")
 	if err != nil {
+		log.Print("Error while Creating History: " + err.Error())
 		return
 	}
 
 	// We upload ref tree to history
 	fileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile, "nhx")
 	if err != nil {
+		log.Print("Error while Uploading ref tree file: " + err.Error())
 		return
 	}
 
 	// We upload boot tree to history
 	fileid2, _, err = p.galaxy.UploadFile(historyid, a.Bootfile, "nhx")
 	if err != nil {
+		log.Print("Error while Uploading boot tree file: " + err.Error())
 		return
 	}
 
@@ -133,12 +150,14 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	params := make(map[string]string)
 	params["algorithm"] = model.AlgorithmStr(a.Algorithm)
 
-	_, jobs, err = p.galaxy.LaunchTool(historyid, "booster", mapfiles, params)
+	_, jobs, err = p.galaxy.LaunchTool(historyid, p.boosterid, mapfiles, params)
 	if err != nil {
+		log.Print("Error while launching booster: " + err.Error())
 		return
 	}
 
 	if len(jobs) != 1 {
+		log.Print("Galaxy Error: No jobs in the list")
 		err = errors.New("Galaxy error")
 		return
 	}
@@ -160,6 +179,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
+				log.Print("Error while downloading support file: " + err.Error())
 				return
 			}
 			a.Result = string(outcontent)
@@ -170,6 +190,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
+				log.Print("Error while downloading avg dist tree file: " + err.Error())
 				return
 			}
 			a.RawTree = string(outcontent)
@@ -180,6 +201,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
+				log.Print("Error while downloading log file: " + err.Error())
 				return
 			}
 			a.ResLogs = string(outcontent)
@@ -191,7 +213,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			err = p.db.UpdateAnalysis(a)
 			/* Delete history */
 			if _, err2 := p.galaxy.DeleteHistory(historyid); err2 != nil {
-				log.Print(err2)
+				log.Print("Error while deleting history: " + err2.Error())
 			}
 			return
 		case "queued":

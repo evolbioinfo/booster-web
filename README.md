@@ -59,6 +59,7 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * type="[galaxy|local]"
   * galaxykey="[galaxy api key]"
   * galaxyurl="[url of the galaxy server: http(s)://ip:port]"
+  * galaxyboosterid="[name of the booster tool on galaxy]" (The specfic id of the tool having the given name is automatically searched on the galaxy server. If several tools are returned, then it takes the last one)
   * queuesize=[size of job queue]
   * nbrunners=[number of parallel local runners]
   * jobthreads=[number of threads per local job]
@@ -70,7 +71,7 @@ It is possible to configure `booster-web` to run with specific options. To do so
 * authentication
   * user="[global username]"
   * password="[global password]"
-  
+
 And run booster web: `booster-web --config booster-web.toml`
 
 ## Example of configuration file
@@ -87,6 +88,7 @@ dbname = "mydbname"
 type="galaxy"
 galaxykey="dsjfkhsdfhdjfhdjfhsdkjfh"
 galaxyurl="http://url:80"
+galaxyboosterid="booster"
 queuesize = 10
 nbrunners  = 2
 jobthreads  = 5

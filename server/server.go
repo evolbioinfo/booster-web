@@ -191,6 +191,7 @@ func initProcessor(cfg config.Provider) {
 	galaxykey := cfg.GetString("runners.galaxykey")
 	galaxyurl := cfg.GetString("runners.galaxyurl")
 	proctype := cfg.GetString("runners.type")
+	boosterid := cfg.GetString("runners.galaxyboosterid")
 	switch proctype {
 	case "galaxy":
 		if galaxyurl == "" {
@@ -199,8 +200,11 @@ func initProcessor(cfg config.Provider) {
 		if galaxykey == "" {
 			log.Fatal("galaxykey must be provided in configuration file when type=galaxy")
 		}
+		if boosterid == "" {
+			boosterid = "booster"
+		}
 		galproc := &processor.GalaxyProcessor{}
-		galproc.InitProcessor(galaxyurl, galaxykey, db, queuesize)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, db, queuesize)
 		proc = galproc
 	case "local", "":
 		// Local or not set
