@@ -144,13 +144,12 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	}
 
 	// We launch the job
-	mapfiles := make(map[string]string)
-	mapfiles["ref"] = fileid
-	mapfiles["boot"] = fileid2
-	params := make(map[string]string)
-	params["algorithm"] = model.AlgorithmStr(a.Algorithm)
+	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
+	tl.AddParameter("algorithm", model.AlgorithmStr(a.Algorithm))
+	tl.AddFileInput("ref", fileid, "hda")
+	tl.AddFileInput("boot", fileid2, "hda")
 
-	_, jobs, err = p.galaxy.LaunchTool(historyid, p.boosterid, mapfiles, params)
+	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
 		log.Print("Error while launching booster: " + err.Error())
 		return
