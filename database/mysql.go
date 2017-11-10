@@ -46,6 +46,9 @@ type MySQLBoosterwebDB struct {
 
 type dbanalysis struct {
 	id           string `mysql-type:varchar(100)` // Id of the analysis
+	seqfile      string `mysql-type:blob`         // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	nbootrep     int    `mysql-type:int`          // Number of bootstrap replicates given by the user to build the bootstrap trees
+	alignfile    string `mysql-type:blob`         // alignment input file (if user wants to build the trees)
 	reffile      string `mysql-type:blob`         // reference tree file
 	bootfile     string `mysql-type:blob`         // boot tree file
 	results      string `mysql-type:longtext`     // result tree with normalize supports
@@ -96,7 +99,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT id,reffile,bootfile,results,rawtree,reslogs,status,algorithm,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
+	rows, err := db.db.Query("SELECT id,seqfile,nbootrep,alignfile,reffile,bootfile,results,rawtree,reslogs,status,algorithm,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +107,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 
 	dban := dbanalysis{}
 	if rows.Next() {
-		if err := rows.Scan(&dban.id, &dban.reffile, &dban.bootfile, &dban.results, &dban.rawtree, &dban.reslogs,
+		if err := rows.Scan(&dban.id, &dban.seqfile, &dban.nbootrep, &dban.alignfile, &dban.reffile, &dban.bootfile, &dban.results, &dban.rawtree, &dban.reslogs,
 			&dban.status, &dban.algorithm, &dban.message, &dban.nboot, &dban.startpending,
 			&dban.startrunning, &dban.end); err != nil {
 			return nil, err
@@ -119,6 +122,9 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 
 	a := &model.Analysis{
 		dban.id,
+		dban.seqfile,
+		dban.nbootrep,
+		dban.alignfile,
 		dban.reffile,
 		dban.bootfile,
 		dban.results,
@@ -146,7 +152,7 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		return errors.New("Database not opened")
 	}
 	query := `INSERT INTO analysis 
-                    (id, reffile, bootfile, results, rawtree, reslogs, status, algorithm, message, nboot, startpending, startrunning , end) 
+                    (id, seqfile, nbootrep, alignfile, reffile, bootfile, results, rawtree, reslogs, status, algorithm, message, nboot, startpending, startrunning , end) 
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) 
                   ON DUPLICATE KEY UPDATE results=values(results), rawtree=values(rawtree), reslogs=values(reslogs), 
                                           status=values(status), algorithm=values(algorithm),
@@ -155,6 +161,9 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 	_, err := db.db.Exec(
 		query,
 		a.Id,
+		a.SeqFile,
+		a.NbootRep,
+		a.Alignfile,
 		a.Reffile,
 		a.Bootfile,
 		a.Result,
@@ -175,7 +184,7 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 func (db *MySQLBoosterwebDB) InitDatabase() error {
 	log.Print("Initializing mysql Database")
 	_, err := db.db.Exec(
-		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, reffile blob, bootfile blob, results longtext, rawtree longtext, reslogs longtext, status int, algorithm int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
+		"CREATE TABLE if not exists analysis (id varchar(40) not null primary key, seqfile blob, nbootrep int, alignfile blob, reffile blob, bootfile blob, results longtext, rawtree longtext, reslogs longtext, status int, algorithm int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
 
 	if err == nil {
 		err = db.checkColumns()

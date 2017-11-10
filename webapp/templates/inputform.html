@@ -31,6 +31,20 @@ BOOSTER - Run
 {{ define "content"}}
 
 <form action="/run" method="POST" enctype="multipart/form-data">
+  {{if .GalaxyProcessor }}
+  <div class="form-group">
+    <label for="refseqs">Input Sequences</label>
+    <input type="file" class="form-control-file" id="refseqs" aria-describedby="refSeqsHelp" name="refseqs" />
+    <small id="refSeqsHelp" class="form-text text-muted">Input sequences (Fasta format, possibly gzipped with extension .gz only).
+      If given, ngphylogeny.fr workflow (PHYML-SMS oneclick) will be executed to build reference and bootstrap trees,
+      and no tree file given below will be taken into account.</small>
+  </div>
+  <div class="form-group">
+    <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
+    <input style="max-width:500px;" type="range" name="points" value="40" min="2" max="100" id="nboot"  name="nboot"  onchange="updateNbootInput(this.value);"/>
+    <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
+  </div>
+  {{ end }}
   <div class="form-group">
     <label for="reftree">Reference tree</label>
     <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />

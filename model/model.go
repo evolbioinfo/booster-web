@@ -45,7 +45,13 @@ const (
 )
 
 type Analysis struct {
-	Id           string `json:"id"`           // sha256 sum of reftree and boottree files
+	Id string `json:"id"` // sha256 sum of reftree and boottree files
+
+	// Three next attributes are for users who want to build the trees using PhyML-SMS of galaxy
+	SeqFile   string `json:"-"`        // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	NbootRep  int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
+	Alignfile string `json:"align"`    // Alignment result file returned by galaxy workflow if users gave a input sequence file
+
 	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
 	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
 	Result       string `json:"result"`       // resulting newick tree with support
@@ -106,13 +112,30 @@ func AlgorithmConst(algorithm string) (int, error) {
 }
 
 func (a *Analysis) DelTemp() {
-	if err := os.Remove(a.Reffile); err != nil {
-		log.Print(err)
+	var dir string
+	if a.SeqFile != "" {
+		if err := os.Remove(a.SeqFile); err != nil {
+			log.Print(err)
+		}
+		dir = filepath.Dir(a.SeqFile)
 	}
-	if err := os.Remove(a.Bootfile); err != nil {
-		log.Print(err)
+	if a.Reffile != "" {
+		if err := os.Remove(a.Reffile); err != nil {
+			log.Print(err)
+		}
+		dir = filepath.Dir(a.Reffile)
 	}
-	if err := os.Remove(filepath.Dir(a.Bootfile)); err != nil {
-		log.Print(err)
+	if a.Bootfile != "" {
+
+		if err := os.Remove(a.Bootfile); err != nil {
+			log.Print(err)
+		}
+		dir = filepath.Dir(a.Bootfile)
 	}
+	if dir != "" {
+		if err := os.Remove(dir); err != nil {
+			log.Print(err)
+		}
+	}
+
 }

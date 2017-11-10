@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 package processor
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -54,6 +55,11 @@ type LocalProcessor struct {
 }
 
 func (p *LocalProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
+	if a.Reffile != "" {
+		err = errors.New("Local processor cannot infer trees, sequence file won't be analyzed")
+		a.DelTemp()
+		return
+	}
 	select {
 	case p.queue <- a: // Put a in the channel unless it is full
 	default:

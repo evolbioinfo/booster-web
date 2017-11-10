@@ -35,15 +35,20 @@ import (
 	"github.com/fredericlemoine/golaxy"
 )
 
+// The Galaxy processor launches jobs on a remote galaxy server
+//
+// It can launch only booster if analysis input files are
 type GalaxyProcessor struct {
-	runningJobs map[string]*model.Analysis
-	galaxy      *golaxy.Galaxy
-	queue       chan *model.Analysis // queue of analyses
-	boosterid   string
-	db          database.BoosterwebDB
-	lock        sync.RWMutex
+	runningJobs map[string]*model.Analysis // All running jobs key:job id, value:Job
+	galaxy      *golaxy.Galaxy             // Connection to Galaxy
+	queue       chan *model.Analysis       // Queue of analyses
+	boosterid   string                     // Galaxy ID of booster tool
+	phymlid     string                     // Galaxy ID of phyml Workflow
+	db          database.BoosterwebDB      // Connection to database to save results
+	lock        sync.RWMutex               // Lock to modify running jobs
 }
 
+// It will add the Analysis to the Queue and store it in the database
 func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 	p.db.UpdateAnalysis(a)
 	select {
@@ -62,11 +67,14 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 	return
 }
 
-func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid string, db database.BoosterwebDB, queuesize int) {
+// Initializes the Galaxy Processor
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid string, db database.BoosterwebDB, queuesize int) {
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 	p.boosterid = boosterid
+	p.phymlid = phymlid
+
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
 	}
@@ -88,8 +96,19 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid string, db databa
 			p.boosterid = tools[len(tools)-1]
 		}
 	}
-
 	log.Print(fmt.Sprintf("Booster galaxy tool id: %s", p.boosterid))
+
+	// Searches the workflow with given id (checks that it exists)
+	if wfids, err2 := p.galaxy.SearchWorkflowIDs(phymlid); err2 != nil {
+		log.Fatal(err2)
+	} else {
+		if len(wfids) == 0 {
+			log.Fatal("No PhyML workflow corresponds to the id: " + phymlid)
+		} else {
+			p.phymlid = wfids[len(wfids)-1]
+		}
+	}
+	log.Print(fmt.Sprintf("PhyML-SMS oneclick galaxy tool id: %s", p.phymlid))
 
 	p.queue = make(chan *model.Analysis, queuesize)
 
@@ -116,38 +135,14 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid string, db databa
 	}
 }
 
-func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
-	var outcontent []byte
-	var fileid string
-	var fileid2 string
-	var jobs []string
-	var historyid string
-	// We create an history
-	historyid, err = p.galaxy.CreateHistory("Booster History")
-	if err != nil {
-		log.Print("Error while Creating History: " + err.Error())
-		return
-	}
-
-	// We upload ref tree to history
-	fileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile, "nhx")
-	if err != nil {
-		log.Print("Error while Uploading ref tree file: " + err.Error())
-		return
-	}
-
-	// We upload boot tree to history
-	fileid2, _, err = p.galaxy.UploadFile(historyid, a.Bootfile, "nhx")
-	if err != nil {
-		log.Print("Error while Uploading boot tree file: " + err.Error())
-		return
-	}
-
+func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid, bootfileid string) (normtreeid, rawtreeid, outlogid string, err error) {
 	// We launch the job
+	var jobs []string
+
 	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
 	tl.AddParameter("algorithm", model.AlgorithmStr(a.Algorithm))
-	tl.AddFileInput("ref", fileid, "hda")
-	tl.AddFileInput("boot", fileid2, "hda")
+	tl.AddFileInput("ref", reffileid, "hda")
+	tl.AddFileInput("boot", bootfileid, "hda")
 
 	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
@@ -157,7 +152,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 
 	if len(jobs) != 1 {
 		log.Print("Galaxy Error: No jobs in the list")
-		err = errors.New("Galaxy error")
+		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
 
@@ -177,43 +172,27 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
 				return
 			}
-			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
-				log.Print("Error while downloading support file: " + err.Error())
-				return
-			}
-			a.Result = string(outcontent)
+			normtreeid = id
 
 			// Raw average distance tree file
 			if id, ok = files["avgdist"]; !ok {
 				err = errors.New("Output file (raw distance tree) not present in the galaxy server")
 				return
 			}
-			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
-				log.Print("Error while downloading avg dist tree file: " + err.Error())
-				return
-			}
-			a.RawTree = string(outcontent)
+			rawtreeid = id
 
 			// Log file
 			if id, ok = files["boosterlog"]; !ok {
 				err = errors.New("Output file (log file) not present in the galaxy server")
 				return
 			}
-			if outcontent, err = p.galaxy.DownloadFile(historyid, id); err != nil {
-				log.Print("Error while downloading log file: " + err.Error())
-				return
-			}
-			a.ResLogs = string(outcontent)
+			outlogid = id
 
 			a.Status = model.STATUS_FINISHED
 			a.StatusStr = model.StatusStr(a.Status)
 			a.End = time.Now().Format(time.RFC1123)
 			a.Message = "Finished"
 			err = p.db.UpdateAnalysis(a)
-			/* Delete history */
-			if _, err2 := p.galaxy.DeleteHistory(historyid); err2 != nil {
-				log.Print("Error while deleting history: " + err2.Error())
-			}
 			return
 		case "queued":
 			a.Status = model.STATUS_PENDING
@@ -244,15 +223,161 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			a.StatusStr = model.StatusStr(a.Status)
 			log.Print("Job in unknown state " + state)
 			err = p.db.UpdateAnalysis(a)
-			/* Delete history */
-			if _, err2 := p.galaxy.DeleteHistory(historyid); err2 != nil {
-				log.Print(err2)
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (reffileid, bootfileid string, err error) {
+	var wfinvocation *golaxy.WorkflowInvocation
+	var wfstate *golaxy.WorkflowStatus
+
+	// Initializes a launcher
+	l := p.galaxy.NewWorkflowLauncher(historyid, p.phymlid)
+	l.AddFileInput("0", alignfileid, "hda")
+	l.AddParameter(5, "support_condition|support", "boot")
+	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
+
+	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
+		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
+		return
+	}
+
+	// Now waits for the end of the execution
+	for {
+		if wfstate, err = p.galaxy.CheckWorkflow(wfinvocation); err != nil {
+			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
+			return
+		}
+		switch wfstate.Status() {
+		case "ok":
+			if reffileid, err = wfstate.StepOutputFileId(5, "outtree???"); err != nil {
+				log.Print("Error while getting tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				return
 			}
+			if bootfileid, err = wfstate.StepOutputFileId(5, "bootouttree???"); err != nil {
+				log.Print("Error while getting boot trees output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				return
+			}
+			return
+			a.Status = model.STATUS_FINISHED
+			a.StatusStr = model.StatusStr(a.Status)
+			a.End = time.Now().Format(time.RFC1123)
+			a.Message = "Finished"
+			err = p.db.UpdateAnalysis(a)
+			return
+		case "queued":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "queued"
+			err = p.db.UpdateAnalysis(a)
+		case "waiting":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "waiting"
+			err = p.db.UpdateAnalysis(a)
+		case "running":
+			a.Status = model.STATUS_RUNNING
+			if a.StartRunning == "" {
+				a.StartRunning = time.Now().Format(time.RFC1123)
+			}
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "running"
+			err = p.db.UpdateAnalysis(a)
+		case "new":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "New Job"
+			err = p.db.UpdateAnalysis(a)
+		default: // May be "unknown", "deleted" or other...
+			err = errors.New("Unkown Job state " + wfstate.Status())
+			a.Status = model.STATUS_ERROR
+			a.StatusStr = model.StatusStr(a.Status)
+			log.Print("Job in unknown state " + wfstate.Status())
+			err = p.db.UpdateAnalysis(a)
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
+	var outcontent []byte
+	var alignfileid string
+	var reffileid string
+	var bootfileid string
+	var normtreeid, rawtreeid, outlogid string
+
+	var historyid string
+	// We create an history
+	historyid, err = p.galaxy.CreateHistory("Booster History")
+	if err != nil {
+		log.Print("Error while Creating History: " + err.Error())
+		return
+	}
+
+	// If we have an alignment file, then we build the trees from it
+	// using the PHYML-SMS oneclick workflow from galaxy
+	if a.Alignfile != "" {
+		// We upload ref alignment to history
+		alignfileid, _, err = p.galaxy.UploadFile(historyid, a.Alignfile, "fa")
+		if err != nil {
+			log.Print("Error while Uploading reference alignment file: " + err.Error())
+			return
+		}
+		if reffileid, bootfileid, err = p.submitPhyML(a, historyid, alignfileid); err != nil {
+			log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
+			return
+		}
+	} else if a.Reffile != "" && a.Bootfile != "" {
+		// Otherwise we upload the given ref and boot files
+		// We upload ref tree to history
+		reffileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile, "nhx")
+		if err != nil {
+			log.Print("Error while Uploading ref tree file: " + err.Error())
 			return
 		}
 
-		time.Sleep(10 * time.Second)
+		// We upload boot tree to history
+		bootfileid, _, err = p.galaxy.UploadFile(historyid, a.Bootfile, "nhx")
+		if err != nil {
+			log.Print("Error while Uploading boot tree file: " + err.Error())
+			return
+		}
+	} else {
+		log.Print("No Reference tree or Bootstrap tree given")
+		err = errors.New("No Reference tree or Bootstrap tree given")
+		return
 	}
+
+	// Now we submit the booster tool
+	normtreeid, rawtreeid, outlogid, err = p.submitBooster(a, historyid, reffileid, bootfileid)
+
+	// And we download resulting files
+	if outcontent, err = p.galaxy.DownloadFile(historyid, normtreeid); err != nil {
+		log.Print("Error while downloading support file: " + err.Error())
+		return
+	}
+	a.Result = string(outcontent)
+
+	if outcontent, err = p.galaxy.DownloadFile(historyid, rawtreeid); err != nil {
+		log.Print("Error while downloading avg dist tree file: " + err.Error())
+		return
+	}
+	a.RawTree = string(outcontent)
+
+	if outcontent, err = p.galaxy.DownloadFile(historyid, outlogid); err != nil {
+		log.Print("Error while downloading log file: " + err.Error())
+		return
+	}
+	a.ResLogs = string(outcontent)
+
+	// And we delete the history
+	if _, err = p.galaxy.DeleteHistory(historyid); err != nil {
+		log.Print("Error while deleting history: " + err.Error())
+	}
+
 	return
 }
 

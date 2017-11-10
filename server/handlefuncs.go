@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"mime/multipart"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -53,6 +54,11 @@ type MarkDownPage struct {
 type GenericResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
+}
+
+// Global informations about server given to different templates
+type GlobalInformation struct {
+	GalaxyProcessor bool
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request, err error) {
@@ -170,7 +176,7 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances
 
 func newHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	var info interface{}
+	info := GlobalInformation{GalaxyProcessor: true}
 
 	if t, err := getTemplate("inputform"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -182,6 +188,17 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runHandler(w http.ResponseWriter, r *http.Request) {
+	var refseqs multipart.File
+	var refseqshandler *multipart.FileHeader
+	var reftree multipart.File
+	var refhandler *multipart.FileHeader
+	var boottree multipart.File
+	var boothandler *multipart.FileHeader
+	var err error
+	var a *model.Analysis
+	var algorithm string
+	var nbootint int64
+
 	parserr := r.ParseMultipartForm(32 << 20)
 	if parserr != nil {
 		io.LogError(parserr)
@@ -189,35 +206,42 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reftree, refhandler, err := r.FormFile("reftree")
+	refseqs, refseqshandler, err = r.FormFile("refseqs")
 	if err != nil {
-		io.LogError(err)
-		errorHandler(w, r, err)
-		return
+		// No given sequence file
+		// Then we take tree files
+		reftree, refhandler, err = r.FormFile("reftree")
+		if err != nil {
+			err = errors.New("No reference tree file given (nor sequence file): " + err.Error())
+			io.LogError(err)
+			errorHandler(w, r, err)
+			return
+		}
+
+		boottree, boothandler, err = r.FormFile("boottrees")
+		if err != nil {
+			err = errors.New("No bootstrap tree file given (nor sequence file): " + err.Error())
+			io.LogError(err)
+			errorHandler(w, r, err)
+			return
+		}
 	}
 
-	boottree, boothandler, err2 := r.FormFile("boottrees")
-	if err2 != nil {
-		io.LogError(err2)
-		errorHandler(w, r, err2)
-		return
-	}
-
-	algorithm := r.FormValue("algorithm")
+	algorithm = r.FormValue("algorithm")
 
 	if algorithm != "booster" && algorithm != "classical" {
 		io.LogError(errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
 		errorHandler(w, r, errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
 		return
 	}
-
-	if err2 != nil {
-		io.LogError(err2)
-		errorHandler(w, r, err2)
+	nbootrep := r.FormValue("nboot")
+	if nbootint, err = strconv.ParseInt(nbootrep, 10, 64); err != nil {
+		io.LogError(err)
+		errorHandler(w, r, err)
 		return
 	}
 
-	a, err := newAnalysis(reftree, refhandler, boottree, boothandler, algorithm)
+	a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, int(nbootint))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -234,21 +258,25 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	var a *model.Analysis
 	a, err := getAnalysis(id)
 	if err != nil {
-		a = &model.Analysis{"none",
-			"",
-			"",
-			"",
-			"",
-			"",
-			model.STATUS_NOT_EXISTS,
-			model.ALGORITHM_CLASSICAL,
-			model.StatusStr(model.STATUS_NOT_EXISTS),
-			err.Error(),
-			0,
-			"",
-			"",
-			"",
-			"",
+		a = &model.Analysis{
+			Id:           "none",
+			SeqFile:      "",
+			NbootRep:     0,
+			Alignfile:    "",
+			Reffile:      "",
+			Bootfile:     "",
+			Result:       "",
+			RawTree:      "",
+			ResLogs:      "",
+			Status:       model.STATUS_NOT_EXISTS,
+			Algorithm:    model.ALGORITHM_CLASSICAL,
+			StatusStr:    model.StatusStr(model.STATUS_NOT_EXISTS),
+			Message:      err.Error(),
+			Nboot:        0,
+			Collapsed:    "",
+			StartPending: "",
+			StartRunning: "",
+			End:          "",
 		}
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -273,21 +301,25 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	var a *model.Analysis
 	a, err := getAnalysis(id)
 	if err != nil {
-		a = &model.Analysis{"none",
-			"",
-			"",
-			"",
-			"",
-			"",
-			model.STATUS_NOT_EXISTS,
-			model.ALGORITHM_CLASSICAL,
-			model.StatusStr(model.STATUS_NOT_EXISTS),
-			err.Error(),
-			0,
-			"",
-			"",
-			"",
-			"",
+		a = &model.Analysis{
+			Id:           "none",
+			SeqFile:      "",
+			NbootRep:     0,
+			Alignfile:    "",
+			Reffile:      "",
+			Bootfile:     "",
+			Result:       "",
+			RawTree:      "",
+			ResLogs:      "",
+			Status:       model.STATUS_NOT_EXISTS,
+			Algorithm:    model.ALGORITHM_CLASSICAL,
+			StatusStr:    model.StatusStr(model.STATUS_NOT_EXISTS),
+			Message:      err.Error(),
+			Nboot:        0,
+			Collapsed:    "",
+			StartPending: "",
+			StartRunning: "",
+			End:          "",
 		}
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

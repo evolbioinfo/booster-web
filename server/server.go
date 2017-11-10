@@ -188,10 +188,12 @@ func initProcessor(cfg config.Provider) {
 	queuesize := cfg.GetInt("runners.queuesize")
 	timeout := cfg.GetInt("runners.timeout")
 	jobthreads := cfg.GetInt("runners.jobthreads")
-	galaxykey := cfg.GetString("runners.galaxykey")
-	galaxyurl := cfg.GetString("runners.galaxyurl")
+	galaxykey := cfg.GetString("galaxy.key")
+	galaxyurl := cfg.GetString("galaxy.url")
 	proctype := cfg.GetString("runners.type")
-	boosterid := cfg.GetString("runners.galaxyboosterid")
+	boosterid := cfg.GetString("galaxy.tools.booster")
+	phymlid := cfg.GetString("galaxy.workflows.phyml")
+
 	switch proctype {
 	case "galaxy":
 		if galaxyurl == "" {
@@ -204,7 +206,7 @@ func initProcessor(cfg config.Provider) {
 			boosterid = "booster"
 		}
 		galproc := &processor.GalaxyProcessor{}
-		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, db, queuesize)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, db, queuesize)
 		proc = galproc
 	case "local", "":
 		// Local or not set
@@ -314,66 +316,77 @@ func initLogin(cfg config.Provider) {
 }
 
 /*Algorithm: booster or classical */
-func newAnalysis(reffile multipart.File, refheader *multipart.FileHeader, bootfile multipart.File, bootheader *multipart.FileHeader, algorithm string) (*model.Analysis, error) {
+func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
+	reffile multipart.File, refheader *multipart.FileHeader,
+	bootfile multipart.File, bootheader *multipart.FileHeader,
+	algorithm string, nbootrep int) (a *model.Analysis, err error) {
 
-	algo, e := model.AlgorithmConst(algorithm)
-	if e != nil {
-		return nil, e
+	var algo int
+	var uuid string
+	var dir string
+	var seqfile, treefile, boottreefile string
+
+	if algo, err = model.AlgorithmConst(algorithm); err != nil {
+		return
 	}
 
-	uuid := <-uuids
+	uuid = <-uuids
 
-	a := &model.Analysis{
-		uuid,
-		"",
-		"",
-		"",
-		"",
-		"",
-		model.STATUS_PENDING,
-		algo,
-		model.StatusStr(model.STATUS_PENDING),
-		"",
-		0,
-		"",
-		time.Now().Format(time.RFC1123),
-		"",
-		"",
+	a = &model.Analysis{
+		Id:           uuid,
+		SeqFile:      "",
+		NbootRep:     nbootrep,
+		Alignfile:    "",
+		Reffile:      "",
+		Bootfile:     "",
+		Result:       "",
+		RawTree:      "",
+		ResLogs:      "",
+		Status:       model.STATUS_PENDING,
+		Algorithm:    algo,
+		StatusStr:    model.StatusStr(model.STATUS_PENDING),
+		Message:      "",
+		Nboot:        0,
+		Collapsed:    "",
+		StartPending: time.Now().Format(time.RFC1123),
+		StartRunning: "",
+		End:          "",
 	}
-
-	log.Print(fmt.Sprintf("New analysis submited | id=%s", a.Id))
 
 	/* tmp analysis folder */
-	dir, err := ioutil.TempDir("", uuid)
-	if err != nil {
+	if dir, err = ioutil.TempDir("", uuid); err != nil {
 		log.Print(err)
-		return nil, err
-	}
-	reftree := filepath.Join(dir, refheader.Filename)
-	boottrees := filepath.Join(dir, bootheader.Filename)
-	ref, err1 := os.OpenFile(reftree, os.O_WRONLY|os.O_CREATE, 0666)
-	if err1 != nil {
-		log.Print(err1)
-		return nil, err1
+		return
 	}
 
-	boot, err2 := os.OpenFile(boottrees, os.O_WRONLY|os.O_CREATE, 0666)
-	if err2 != nil {
-		log.Print(err2)
-		return nil, err2
+	// Reference sequences if given
+	if refseqsheader != nil {
+		log.Print(fmt.Sprintf("New phyml (%dboot) + booster analysis submited | id=%s | ", a.NbootRep, a.Id))
+
+		if seqfile, err = copyFile(dir, refseqs, refseqsheader); err != nil {
+			log.Print(err)
+			return
+		}
+	} else {
+		log.Print(fmt.Sprintf("New booster analysis submited | id=%s | ", a.Id))
+
+		if treefile, err = copyFile(dir, reffile, refheader); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+		if boottreefile, err = copyFile(dir, bootfile, bootheader); err != nil {
+			log.Print(err)
+			return nil, err
+		}
 	}
 
-	goio.Copy(ref, reffile)
-	goio.Copy(boot, bootfile)
-	ref.Close()
-	boot.Close()
+	a.SeqFile = seqfile
+	a.Reffile = treefile
+	a.Bootfile = boottreefile
 
-	a.Reffile = reftree
-	a.Bootfile = boottrees
+	err = proc.LaunchAnalysis(a)
 
-	proc.LaunchAnalysis(a)
-
-	return a, nil
+	return
 }
 
 func getAnalysis(id string) (a *model.Analysis, err error) {
@@ -384,4 +397,21 @@ func getAnalysis(id string) (a *model.Analysis, err error) {
 func markDowner(args ...interface{}) template.HTML {
 	s := blackfriday.MarkdownCommon([]byte(fmt.Sprintf("%s", args...)))
 	return template.HTML(s)
+}
+
+func copyFile(tmpdir string, infile multipart.File, infileheader *multipart.FileHeader) (fpath string, err error) {
+	var f *os.File
+	if infileheader != nil {
+		fpath = filepath.Join(tmpdir, infileheader.Filename)
+		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
+			log.Print(err)
+		} else {
+			goio.Copy(f, infile)
+		}
+		defer f.Close()
+	} else {
+		err = errors.New("File to copy does not exist")
+		log.Print(err)
+	}
+	return
 }
