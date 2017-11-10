@@ -238,6 +238,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
+	l.AddParameter(5, "support_condition|algorithm", model.AlgorithmStr(a.Algorithm))
 
 	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
 		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
