@@ -57,13 +57,25 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * dbname = "[mysql dbname]"
 * runners
   * type="[galaxy|local]"
-  * galaxykey="[galaxy api key]"
-  * galaxyurl="[url of the galaxy server: http(s)://ip:port]"
-  * galaxyboosterid="[name of the booster tool on galaxy]" (The specfic id of the tool having the given name is automatically searched on the galaxy server. If several tools are returned, then it takes the last one)
   * queuesize=[size of job queue]
   * nbrunners=[number of parallel local runners]
   * jobthreads=[number of threads per local job]
   * timeout=[job timeout in seconds: 0=ulimited]
+* galaxy (Only used if runners.type="galaxy")
+  * key="[galaxy api key]"
+  * url="[url of the galaxy server: http(s)://ip:port]"
+* galaxy.tools
+  * booster="[Id of booster tool on the galaxy server]"
+* galaxy.workflows
+  * phyml="[Id of ngphylogeny.fr PHYML oneclick workflow to run]"
+* notification (for notification when jobs are finished)
+  * activated=[true|false]
+  * smtp="[smtp serveur for sending email]"
+  * port=[smtp port]
+  * user="[smtp user]"
+  * pass="[smtp password]"
+  * resultpage = "[url to result pages]"
+  * sender="[sender of the notification]"
 * logging
   * logfile= "[stderr|stdout|/path/to/logfile]"
 * http
@@ -77,26 +89,67 @@ And run booster web: `booster-web --config booster-web.toml`
 ## Example of configuration file
 ```
 [database]
+# Type : memory|mysql (default memory)
 type = "mysql"
-user = "myuser"
+user = "mysql_user"
 port = 3306
-host = "localhost"
-pass = "mypass"
-dbname = "mydbname"
+host = "mysql_server"
+pass = "mysql_pass"
+dbname = "mysql_db_name"
 
 [runners]
+# galaxy|local if galaxy: required galaxykey & galaxyurl
 type="galaxy"
-galaxykey="dsjfkhsdfhdjfhdjfhsdkjfh"
-galaxyurl="http://url:80"
-galaxyboosterid="booster"
-queuesize = 10
-nbrunners  = 2
-jobthreads  = 5
-timeout  = 3600
+# Maximum number of pending jobs (default : 10): for galaxy & local
+queuesize = 200
+# Number of parallel running jobs (default : 1): for local only
+nbrunners  = 1
+# Number of cpus per bootstrap job : for local only
+jobthreads  = 10
+# Timout for each job in seconds (default unlimited): for local only
+#timeout  = 10
+
+#Only used if runners.type="galaxy"
+[galaxy]
+key="galaxy_api_key"
+url="https://galaxy.server.com/"
+
+[galaxy.tools]
+# Id of booster tool on the galaxy server
+booster="/.../booster/booster/version"
+
+[galaxy.workflows]
+# Id of ngphylogeny.fr PHYML oneclick workflow
+phyml="workflow_id"
+
+# For notification when job is finished
+[notification]
+# true|false
+activated=true
+# smtp serveur for sending email
+smtp="smtp.serveur.com"
+# Port
+port=587
+# Smtp user 
+user="smtp_user"
+# Smtp password
+pass="smtp_pass"
+# booster-web server name:port/view page,
+# used to give the right url in result email
+resultpage = "http://url/view"
+# sender of the notification
+sender = "sender@server.com"
 
 [logging]
-logfile = "stderr"
+# Log file : stdout|stderr|any file
+logfile = "booster.log"
 
 [http]
+# HTTP server Listening port
 port = 4000
+
+# For running a private server, default: no authentication
+#[authentication]
+#user     = "user"
+#password = "pass"
 ```
