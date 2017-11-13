@@ -58,7 +58,8 @@ type GenericResponse struct {
 
 // Global informations about server given to different templates
 type GlobalInformation struct {
-	GalaxyProcessor bool
+	GalaxyProcessor   bool
+	EmailNotification bool
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request, err error) {
@@ -176,7 +177,10 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances
 
 func newHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	info := GlobalInformation{GalaxyProcessor: true}
+	info := GlobalInformation{
+		GalaxyProcessor:   galaxyprocessor,
+		EmailNotification: emailnotification,
+	}
 
 	if t, err := getTemplate("inputform"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -198,6 +202,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	var a *model.Analysis
 	var algorithm string
 	var nbootint int64
+	var email string
 
 	parserr := r.ParseMultipartForm(32 << 20)
 	if parserr != nil {
@@ -206,11 +211,15 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refseqs, refseqshandler, err = r.FormFile("refseqs")
-	if err != nil {
+	if refseqs, refseqshandler, err = r.FormFile("refseqs"); err != nil {
+		err = errors.New("No Sequence file given: " + err.Error())
+		io.LogError(err)
+
 		// No given sequence file
 		// Then we take tree files
 		reftree, refhandler, err = r.FormFile("reftree")
+		defer reftree.Close()
+
 		if err != nil {
 			err = errors.New("No reference tree file given (nor sequence file): " + err.Error())
 			io.LogError(err)
@@ -219,6 +228,8 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		boottree, boothandler, err = r.FormFile("boottrees")
+		defer boottree.Close()
+
 		if err != nil {
 			err = errors.New("No bootstrap tree file given (nor sequence file): " + err.Error())
 			io.LogError(err)
@@ -226,7 +237,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	email = r.FormValue("email")
 	algorithm = r.FormValue("algorithm")
 
 	if algorithm != "booster" && algorithm != "classical" {
@@ -241,13 +252,13 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, int(nbootint))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, email, int(nbootint)); err != nil {
+		err = errors.New("Error while creating a new analysis: " + err.Error())
+		io.LogError(err)
+		errorHandler(w, r, err)
+		//http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	reftree.Close()
-	boottree.Close()
 
 	http.Redirect(w, r, "/view/"+a.Id, http.StatusSeeOther)
 }
@@ -260,6 +271,7 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	if err != nil {
 		a = &model.Analysis{
 			Id:           "none",
+			EMail:        "",
 			SeqFile:      "",
 			NbootRep:     0,
 			Alignfile:    "",
@@ -303,6 +315,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	if err != nil {
 		a = &model.Analysis{
 			Id:           "none",
+			EMail:        "",
 			SeqFile:      "",
 			NbootRep:     0,
 			Alignfile:    "",

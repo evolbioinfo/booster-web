@@ -36,6 +36,7 @@ import (
 	"github.com/fredericlemoine/booster-web/database"
 	"github.com/fredericlemoine/booster-web/io"
 	"github.com/fredericlemoine/booster-web/model"
+	"github.com/fredericlemoine/booster-web/notification"
 	"github.com/fredericlemoine/gotree/io/utils"
 	"github.com/fredericlemoine/gotree/support"
 )
@@ -51,6 +52,7 @@ type LocalProcessor struct {
 	runningJobs map[string]*model.Analysis
 	queue       chan *model.Analysis // queue of analyses
 	db          database.BoosterwebDB
+	notifier    notification.Notifier
 	lock        sync.RWMutex
 }
 
@@ -75,11 +77,11 @@ func (p *LocalProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 	return
 }
 
-func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads int, db database.BoosterwebDB) {
+func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads int, db database.BoosterwebDB, notifier notification.Notifier) {
 	var maxcpus int = runtime.NumCPU() // max number of cpus
 
 	p.db = db
-
+	p.notifier = notifier
 	p.runningJobs = make(map[string]*model.Analysis)
 
 	if jobthreads == 0 {
@@ -213,6 +215,9 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 					}
 					p.rmRunningJob(a)
 					a.DelTemp()
+					if er = p.notifier.Notify(a.StatusStr, a.Id, a.EMail); err != nil {
+						io.LogError(er)
+					}
 					wg.Done()
 				}()
 

@@ -41,7 +41,7 @@ BOOSTER - Run
   </div>
   <div class="form-group">
     <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
-    <input style="max-width:500px;" type="range" name="points" value="40" min="2" max="100" id="nboot"  name="nboot"  onchange="updateNbootInput(this.value);"/>
+    <input style="max-width:500px;" type="range" value="40" min="2" max="100" id="nboot"  name="nboot"  onchange="updateNbootInput(this.value);"/>
     <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
   </div>
   {{ end }}
@@ -63,6 +63,14 @@ BOOSTER - Run
     </select>
     <small id="algoHelp" class="form-text text-muted">Choose bootstrap algorithm (FBP or TBE)</small>
   </div>
+  {{if .EmailNotification }}
+  <div class="form-group">
+    <label for="email">E-Mail</label>
+    <input id="email" name="email" class="form-control" type="text" aria-describedby="emailHelp"/>
+    <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you want to be notified as soon as the job is finished</small>
+  </div>
+  {{ end }}
+
   <button type="submit" class="btn btn-primary">Run</button>
 </form>
 

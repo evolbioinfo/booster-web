@@ -45,8 +45,8 @@ const (
 )
 
 type Analysis struct {
-	Id string `json:"id"` // sha256 sum of reftree and boottree files
-
+	Id    string `json:"id"` // sha256 sum of reftree and boottree files
+	EMail string `json:"-"`  // EMail of the job creator, may be empty string ""
 	// Three next attributes are for users who want to build the trees using PhyML-SMS of galaxy
 	SeqFile   string `json:"-"`        // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
 	NbootRep  int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
