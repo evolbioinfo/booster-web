@@ -2,7 +2,7 @@ BOOSTER is a new way of computing bootstrap supports in large phylogenies.
 
 ## Computing transfer supports via the web interface
 
-You can submit BOOSTER jobs on the [run](/run) page of this web interface. Only two inputs are required:
+You can submit BOOSTER jobs on the [run](/new) page of this web interface. Only two inputs are required:
 
 1. A reference tree file in newick format (may be gzipped)
 2. A bootstrap tree file containing all the bootstrap trees (may be gzipped)
