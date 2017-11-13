@@ -57,7 +57,7 @@ type LocalProcessor struct {
 }
 
 func (p *LocalProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
-	if a.Reffile != "" {
+	if a.SeqFile != "" {
 		err = errors.New("Local processor cannot infer trees, sequence file won't be analyzed")
 		a.DelTemp()
 		return

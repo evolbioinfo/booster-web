@@ -201,7 +201,7 @@ func initProcessor(cfg config.Provider) {
 	boosterid := cfg.GetString("galaxy.tools.booster")
 	phymlid := cfg.GetString("galaxy.workflows.phyml")
 
-	galaxyprocessor = true
+	galaxyprocessor = false
 
 	switch proctype {
 	case "galaxy":

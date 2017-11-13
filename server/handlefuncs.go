@@ -246,7 +246,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nbootrep := r.FormValue("nboot")
-	if nbootint, err = strconv.ParseInt(nbootrep, 10, 64); err != nil {
+	if nbootint, err = strconv.ParseInt(nbootrep, 10, 64); err != nil && galaxyprocessor {
 		io.LogError(err)
 		errorHandler(w, r, err)
 		return
