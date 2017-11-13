@@ -213,7 +213,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 	if refseqs, refseqshandler, err = r.FormFile("refseqs"); err != nil {
 		err = errors.New("No Sequence file given: " + err.Error())
-		io.LogError(err)
+		io.LogInfo(err.Error())
 
 		// No given sequence file
 		// Then we take tree files

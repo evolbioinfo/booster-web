@@ -71,7 +71,7 @@ func (n *EmailNotifier) Notify(status string, analysisId string, email string) (
 	// Connect to the remote SMTP server.
 	if email != "" && n.server != "" && n.user != "" && n.pass != "" && n.sender != "" && validateEmail(email) {
 		auth := smtp.PlainAuth("", n.user, n.pass, n.server)
-		body := fmt.Sprintf("Dear booster-web user, \n\nYour analysis has finished with status : '%s'.\nYou may wish to go to the following result page\n %s/%s \n\nBest regards,\n\nThe BOOSTER-WEB team\nEvolutionary Biology Unit - USR 3756 Institut Pasteur - CNRS", status, n.resulturl, analysisId)
+		body := fmt.Sprintf("Dear booster-web user, \n\nYour analysis has finished with status : '%s'.\nYou may wish to go to the following result page\n %s/%s \n\nBest regards,\n\nThe BOOSTER-WEB team\nEvolutionary Biology Unit - USR 3756 Institut Pasteur - CNRS\nhttps://research.pasteur.fr/en/team/evolutionary-bioinformatics", status, n.resulturl, analysisId)
 		msg := fmt.Sprintf("From: %s\nTo: %s\nSubject: booster-web results\n\n%s", n.sender, email, body)
 
 		err = smtp.SendMail(fmt.Sprintf("%s:%d", n.server, n.port), auth, n.sender, []string{email}, []byte(msg))
