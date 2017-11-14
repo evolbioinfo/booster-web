@@ -223,11 +223,11 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
 		default:
-			err = errors.New("Unkown Job state " + state)
+			err = errors.New("Unkown Job state: " + state)
 			a.Status = model.STATUS_ERROR
 			a.StatusStr = model.StatusStr(a.Status)
-			log.Print("Job in unknown state " + state)
-			err = p.db.UpdateAnalysis(a)
+			log.Print("Job in unknown state: " + state)
+			p.db.UpdateAnalysis(a)
 			return
 		}
 		time.Sleep(10 * time.Second)
@@ -302,12 +302,12 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
-		default: // May be "unknown", "deleted" or other...
-			err = errors.New("Unkown Job state " + wfstate.Status())
+		default: // May be "unknown", "deleted", "error" or other...
+			err = errors.New("Job state : " + wfstate.Status())
 			a.Status = model.STATUS_ERROR
 			a.StatusStr = model.StatusStr(a.Status)
-			log.Print("Job in unknown state " + wfstate.Status())
-			err = p.db.UpdateAnalysis(a)
+			log.Print("Job in unknown state: " + wfstate.Status())
+			p.db.UpdateAnalysis(a)
 			return
 		}
 		time.Sleep(10 * time.Second)
