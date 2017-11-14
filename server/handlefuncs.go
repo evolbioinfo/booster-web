@@ -251,6 +251,9 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		errorHandler(w, r, err)
 		return
 	}
+	if nbootint > 100 {
+		nbootint = 100
+	}
 
 	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, email, int(nbootint)); err != nil {
 		err = errors.New("Error while creating a new analysis: " + err.Error())
