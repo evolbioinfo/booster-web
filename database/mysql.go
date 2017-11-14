@@ -156,7 +156,7 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 	query := `INSERT INTO analysis 
                     (id, email, seqfile, nbootrep, alignfile, reffile, bootfile, results, rawtree, reslogs, status, algorithm, message, nboot, startpending, startrunning , end) 
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
-                  ON DUPLICATE KEY UPDATE results=values(results), rawtree=values(rawtree), reslogs=values(reslogs), 
+                  ON DUPLICATE KEY UPDATE alignfile=values(alignfile), results=values(results), rawtree=values(rawtree), reslogs=values(reslogs), 
                                           status=values(status), algorithm=values(algorithm),
                                           message=values(message), nboot=values(nboot), 
                                           startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
