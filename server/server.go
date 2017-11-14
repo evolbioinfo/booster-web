@@ -341,7 +341,8 @@ func initEmailNotification(cfg config.Provider) {
 	}
 }
 
-/*Algorithm: booster or classical */
+//
+// Creates a new analysis
 func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	reffile multipart.File, refheader *multipart.FileHeader,
 	bootfile multipart.File, bootheader *multipart.FileHeader,
