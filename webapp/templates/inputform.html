@@ -32,44 +32,53 @@ BOOSTER - Run
 
 <form action="/run" method="POST" enctype="multipart/form-data">
   {{if .GalaxyProcessor }}
-  <div class="form-group">
-    <label for="refseqs">Input Sequences</label>
-    <input type="file" class="form-control-file" id="refseqs" aria-describedby="refSeqsHelp" name="refseqs" />
-    <small id="refSeqsHelp" class="form-text text-muted">Input sequences (Fasta format, possibly gzipped with extension .gz only).
-      If given, ngphylogeny.fr workflow (PHYML-SMS oneclick) will be executed to build reference and bootstrap trees,
-      and no tree file given below will be taken into account.</small>
-  </div>
-  <div class="form-group">
-    <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
-    <input style="max-width:500px;" type="range" value="40" min="2" max="100" id="nboot"  name="nboot"  onchange="updateNbootInput(this.value);"/>
-    <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
-  </div>
+  <fieldset class="form-group">
+    <legend class="fieldset-border">You have input sequences (fasta format)</legend>
+    <div>
+      <label for="refseqs">Input Sequences</label>
+      <input type="file" class="form-control-file" id="refseqs" aria-describedby="refSeqsHelp" name="refseqs" />
+      <small id="refSeqsHelp" class="form-text text-muted">Input sequences (Fasta format, possibly gzipped with extension .gz only).
+	If given, <a href="https://ngphylogeny.fr/workflows/oneclick/">PHYML-SMS oneclick</a> workflow will be executed to build reference and bootstrap trees,
+	and no tree file given below will be taken into account.</small>
+    </div>
+    <div>
+      <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
+      <input style="max-width:500px;" type="range" value="40" min="2" max="100" id="nboot"  name="nboot"  oninput="updateNbootInput(this.value);"/>
+      <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
+    </div>
+  </fieldset>
   {{ end }}
-  <div class="form-group">
-    <label for="reftree">Reference tree</label>
-    <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />
-    <small id="refTreeHelp" class="form-text text-muted">The tree must be in Newick format, and may be gzipped (extension .gz only)</small>
-  </div>
-  <div class="form-group">
-    <label for="reftree">Bootstrap trees</label>
-    <input type="file" class="form-control-file" id="boottrees" aria-describedby="bootTreeHelp" name="boottrees" />
-    <small id="bootTreeHelp" class="form-text text-muted">All bootstrap trees must be in one single file, in newick format, and may be gzipped (extension .gz only)</small>
-  </div>
-  <div class="form-group">
-    <label for="algorithm">Algorithm</label>
-    <select id="algorithm" name="algorithm" class="form-control" aria-describedby="algorithmHelp">
-    <option value="booster" selected>TBE (Transfer bootstrap)</option>
-    <option value="classical">FBP (Felsenstein bootstrap)</option> 
-    </select>
-    <small id="algoHelp" class="form-text text-muted">Choose bootstrap algorithm (FBP or TBE)</small>
-  </div>
-  {{if .EmailNotification }}
-  <div class="form-group">
-    <label for="email">E-Mail</label>
-    <input id="email" name="email" class="form-control" type="text" aria-describedby="emailHelp"/>
-    <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you want to be notified as soon as the job is finished</small>
-  </div>
-  {{ end }}
+  <fieldset class="form-group">
+    <legend class="fieldset-border">You have reference and bootstrap trees</legend>
+    <div>
+      <label for="reftree">Reference tree</label>
+      <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />
+      <small id="refTreeHelp" class="form-text text-muted">The tree must be in Newick format, and may be gzipped (extension .gz only)</small>
+    </div>
+    <div>
+      <label for="boottrees">Bootstrap trees</label>
+      <input type="file" class="form-control-file" id="boottrees" aria-describedby="bootTreeHelp" name="boottrees" />
+      <small id="bootTreeHelp" class="form-text text-muted">All bootstrap trees must be in one single file, in newick format, and may be gzipped (extension .gz only)</small>
+    </div>
+  </fieldset>
+  <fieldset class="form-group">
+    <legend class="fieldset-border">In any case</legend>
+    <div>
+      <label for="algorithm">Algorithm</label>
+      <select id="algorithm" name="algorithm" class="form-control" aria-describedby="algorithmHelp">
+	<option value="booster" selected>TBE (Transfer bootstrap)</option>
+	<option value="classical">FBP (Felsenstein bootstrap)</option> 
+      </select>
+      <small id="algoHelp" class="form-text text-muted">Choose bootstrap algorithm (FBP or TBE)</small>
+    </div>
+    {{if .EmailNotification }}
+    <div>
+      <label for="email">E-Mail</label>
+      <input id="email" name="email" class="form-control" type="text" aria-describedby="emailHelp"/>
+      <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you want to be notified as soon as the job is finished</small>
+    </div>
+    {{ end }}
+  </fieldset>
 
   <button type="submit" class="btn btn-primary">Run</button>
 </form>
