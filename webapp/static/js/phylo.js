@@ -84,6 +84,20 @@ function downloadRawTree(id){
     });
 }
 
+function downloadAlignment(id){
+    $.ajax({
+	url: "/api/analysis/"+id+"/0",
+	dataType: 'json',
+ 	async: true,
+ 	success: function(data) {
+	    var analysis = data;
+	    if(analysis.status == 2 || analysis.status == 5){
+		download(analysis.align, "alignment.fa", "text/plain");
+	    }
+	}
+    });
+}
+
 function downloadLogs(id){
     $.ajax({
 	url: "/api/analysis/"+id+"/0",

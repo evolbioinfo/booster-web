@@ -57,6 +57,11 @@ BOOSTER - Results {{.Id}}
   <div class="panel-heading">Downloads</div>
   <div class="panel-body">
     <ul>
+      {{if (ne .Alignfile "") }}
+      <li>Aligned sequences<br/>
+	<a class="label label-default" onclick="downloadAlignment({{.Id}})">Download alignment (fasta)</a>
+      </li>
+      {{ end }}
       <li>Tree with normalized supports<br/>
 	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false">Export to iTOL</a>
 	<a class="label label-default" onclick="downloadNormTree({{.Id}})">Download tree (newick)</a>
