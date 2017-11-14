@@ -2,27 +2,52 @@ BOOSTER is a new way of computing bootstrap supports in large phylogenies.
 
 ## Computing transfer supports via the web interface
 
-You can submit BOOSTER jobs on the [run](/new) page of this web interface. Only two inputs are required:
+Two kinds of jobs may be submited to BOOSTER-WEB:
+
+1. Whole phylogenetic analysis;
+2. Bootstrap support computation.
+
+### Whole phylogenetic analysis
+
+If you do not have reference and bootstrap trees already computed, you may just submit a FASTA file to the [run](/new) input form (may be gzipped), in the "input sequence" field.
+
+In that case, the SMS-PhyML oneclick phylogenetic workflow defined in [ngphylogeny.fr](https://ngphylogeny.fr/workflows/oneclick/) is launched on [Galaxy](https://galaxy.pasteur.fr/). It is made of the following steps:
+
+1. Multiple alignment with [MAFFT](https://mafft.cbrc.jp/alignment/server/);
+2. Alignment curation using [Noisy](http://www.bioinf.uni-leipzig.de/Software/noisy/);
+3. Model selection + tree inference using [Phyml-SMS](http://www.atgc-montpellier.fr/phyml-sms/);
+4. Bootstrap support computation using [booster](https://github.com/evolbioinfo/booster/).
+
+### Bootrap support computation
+
+You may also directly submit BOOSTER jobs on the [run](/new) page. In that case, only two inputs are required:
 
 1. A reference tree file in newick format (may be gzipped)
 2. A bootstrap tree file containing all the bootstrap trees (may be gzipped)
 
-Clicking on the "run" button will launch the analysis and take you to the result page, with the following steps:
+### Workflow
+
+Please note that if a FASTA sequence file is provided, no tree file will be taken into account.
+
+Clicking on the "run" button will launch one of the analysis, and take you to the result page, with the following steps:
 
 1. The analysis will be first pending, waiting for available resources;
 2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
 3. After 1 hour, the analysis is "timedout". If you want to analyze a large number of large bootstrap trees, we advise to do it through [command-line](#commandline);
 4. Once the analysis done, result page shows the following panels:
-    1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
+        1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
     2. Links to download results:
-	   1. Tree with normalized supports (download newick format or upload to iTOL);
-	   2. Tree with branch labels formatted as following: "Branch ID|Average transfer Distance|Depth" (download newick format or upload to iTOL, Only with TBE);
-	   3. Booster log file with 2 parts (Only with TBE):
+	   1. Alignment file (only for whole phylogenetic analysis);
+	   2. Tree with normalized supports (download newick format or upload to iTOL);
+	   3. Tree with branch labels formatted as following: "Branch ID|Average transfer Distance|Depth" (download newick format or upload to iTOL, Only with TBE);
+	   4. Booster log file with 2 parts (Only with TBE):
 		  1. Transfer score per taxa (2 columns, "Taxon : Transfer Score");
 		  2. Most transfered taxa per branch (4 columns: Branch Id\tp\tAverage distance\tsemicolumn separated list of most transfered taxa with their respective transfer index)
     3. Tree visualizer that highlights branches with a support greater than the cutoff given by the slider.
 
 ## Generating reference and bootstrap trees
+
+Ig you want to generate reference and bootstrap trees with other means, you can do it via the following commands:
 
 * PhyML: PhyML already generates bootstrap trees. Input file: alignment, Phylip format
 ```bash
