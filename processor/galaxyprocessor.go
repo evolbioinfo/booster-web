@@ -182,15 +182,17 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			}
 			normtreeid = id
 
-			// Raw average distance tree file
-			if id, ok = files["avgdist"]; !ok {
-				err = errors.New("Output file (raw distance tree) not present in the galaxy server")
-				return
+			if a.Algorithm == model.ALGORITHM_BOOSTER {
+				// Raw average distance tree file
+				if id, ok = files["avgdist"]; !ok {
+					err = errors.New("Output file (raw distance tree) not present in the galaxy server")
+					return
+				}
+				rawtreeid = id
 			}
-			rawtreeid = id
 
 			// Log file
-			if id, ok = files["boosterlog"]; !ok {
+			if id, ok = files["bootstraplog"]; !ok {
 				err = errors.New("Output file (log file) not present in the galaxy server")
 				return
 			}
@@ -234,6 +236,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 	}
 }
 
+// rawtreeid may be "" if support is classical/FBP
 func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (alignmentid, normtreeid, rawtreeid, outlogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
@@ -267,11 +270,13 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 				return
 			}
 
-			if rawtreeid, err = wfstate.StepOutputFileId(5, "avgdist"); err != nil {
-				log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
-				return
+			if a.Algorithm == model.ALGORITHM_BOOSTER {
+				if rawtreeid, err = wfstate.StepOutputFileId(5, "avgdist"); err != nil {
+					log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+					return
+				}
 			}
-			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
+			if outlogid, err = wfstate.StepOutputFileId(5, "bootstraplog"); err != nil {
 				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
@@ -380,11 +385,13 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	}
 	a.Result = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(historyid, rawtreeid); err != nil {
-		log.Print("Error while downloading avg dist tree file: " + err.Error())
-		return
+	if rawtreeid != "" {
+		if outcontent, err = p.galaxy.DownloadFile(historyid, rawtreeid); err != nil {
+			log.Print("Error while downloading avg dist tree file: " + err.Error())
+			return
+		}
+		a.RawTree = string(outcontent)
 	}
-	a.RawTree = string(outcontent)
 
 	if outcontent, err = p.galaxy.DownloadFile(historyid, outlogid); err != nil {
 		log.Print("Error while downloading log file: " + err.Error())
