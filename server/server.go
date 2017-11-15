@@ -200,6 +200,7 @@ func initProcessor(cfg config.Provider) {
 	proctype := cfg.GetString("runners.type")
 	boosterid := cfg.GetString("galaxy.tools.booster")
 	phymlid := cfg.GetString("galaxy.workflows.phyml")
+	fasttreeid := cfg.GetString("galaxy.workflows.fasttree")
 
 	galaxyprocessor = false
 
@@ -216,7 +217,7 @@ func initProcessor(cfg config.Provider) {
 		}
 		galproc := &processor.GalaxyProcessor{}
 		galaxyprocessor = true
-		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, db, emailNotifier, queuesize)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, db, emailNotifier, queuesize)
 		proc = galproc
 	case "local", "":
 		// Local or not set
@@ -341,12 +342,13 @@ func initEmailNotification(cfg config.Provider) {
 	}
 }
 
-//
 // Creates a new analysis
+//
+// workflow is sed only if sefseqs is defined : full phylogenetic workflow
 func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	reffile multipart.File, refheader *multipart.FileHeader,
 	bootfile multipart.File, bootheader *multipart.FileHeader,
-	algorithm string, email string, nbootrep int) (a *model.Analysis, err error) {
+	algorithm string, email string, nbootrep int, workflow string) (a *model.Analysis, err error) {
 
 	var algo int
 	var uuid string
@@ -359,27 +361,15 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 
 	uuid = <-uuids
 
-	a = &model.Analysis{
-		Id:           uuid,
-		EMail:        email,
-		SeqFile:      "",
-		NbootRep:     nbootrep,
-		Alignfile:    "",
-		Reffile:      "",
-		Bootfile:     "",
-		Result:       "",
-		RawTree:      "",
-		ResLogs:      "",
-		Status:       model.STATUS_PENDING,
-		Algorithm:    algo,
-		StatusStr:    model.StatusStr(model.STATUS_PENDING),
-		Message:      "",
-		Nboot:        0,
-		Collapsed:    "",
-		StartPending: time.Now().Format(time.RFC1123),
-		StartRunning: "",
-		End:          "",
-	}
+	a = model.NewAnalysis()
+	a.Id = uuid
+	a.EMail = email
+	a.NbootRep = nbootrep
+	a.Status = model.STATUS_PENDING
+	a.Algorithm = algo
+	a.StatusStr = model.StatusStr(model.STATUS_PENDING)
+	a.Nboot = 0
+	a.StartPending = time.Now().Format(time.RFC1123)
 
 	/* tmp analysis folder */
 	if dir, err = ioutil.TempDir("", uuid); err != nil {
@@ -389,12 +379,18 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 
 	// Reference sequences if given
 	if refseqsheader != nil {
-		log.Print(fmt.Sprintf("New phyml (%d boot) + booster analysis submited | id=%s | ", a.NbootRep, a.Id))
-
 		if seqfile, err = copyFile(dir, refseqs, refseqsheader); err != nil {
 			log.Print(err)
 			return
 		}
+
+		// Given workflow to launch does not exist
+		if a.Workflow, err = model.WorkflowConst(workflow); err != nil {
+			log.Print(err)
+			return
+		}
+		log.Print(fmt.Sprintf("New %s (%d boot) + booster analysis submited | id=%s | ", workflow, a.NbootRep, a.Id))
+
 	} else {
 		log.Print(fmt.Sprintf("New booster analysis submited | id=%s | ", a.Id))
 
@@ -411,7 +407,6 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	a.SeqFile = seqfile
 	a.Reffile = treefile
 	a.Bootfile = boottreefile
-
 	err = proc.LaunchAnalysis(a)
 
 	return

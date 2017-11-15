@@ -46,6 +46,9 @@ BOOSTER - Results {{.Id}}
       <li>Submited on: {{.StartPending}}</li>
       <li>Started on: {{.StartRunning}}</li>
       <li>Ended on: {{.End}}</li>
+      <li>Total time elapsed: {{ .RunTime }}</li>
+      <li>Workflow: {{ .WorkflowStr }}</li>
+      <li>Boostrap: {{ .AlgorithmStr }}</li>
       {{/* <li>#Bootstrap trees: {{.Nboot}}</li> */}}
       <li>Output message: {{.Message}}</li>
     </ul>

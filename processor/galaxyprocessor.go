@@ -45,6 +45,7 @@ type GalaxyProcessor struct {
 	queue       chan *model.Analysis       // Queue of analyses
 	boosterid   string                     // Galaxy ID of booster tool
 	phymlid     string                     // Galaxy ID of phyml Workflow
+	fasttreeid  string                     // Galaxy ID of fasttree Workflow
 	db          database.BoosterwebDB      // Connection to database to save results
 	notifier    notification.Notifier      // For email notifications
 	lock        sync.RWMutex               // Lock to modify running jobs
@@ -72,13 +73,14 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 }
 
 // Initializes the Galaxy Processor
-func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize int) {
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize int) {
 	p.notifier = notifier
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 	p.boosterid = boosterid
 	p.phymlid = phymlid
+	p.fasttreeid = fasttreeid
 
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
@@ -148,7 +150,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 	var jobs []string
 
 	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
-	tl.AddParameter("algorithm", model.AlgorithmStr(a.Algorithm))
+	tl.AddParameter("algorithm", a.AlgorithmStr())
 	tl.AddFileInput("ref", reffileid, "hda")
 	tl.AddFileInput("boot", bootfileid, "hda")
 
@@ -246,7 +248,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-	l.AddParameter(5, "support_condition|algorithm", model.AlgorithmStr(a.Algorithm))
+	l.AddParameter(5, "support_condition|algorithm", a.AlgorithmStr())
 
 	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
 		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
@@ -276,7 +278,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 					return
 				}
 			}
-			if outlogid, err = wfstate.StepOutputFileId(5, "bootstraplog"); err != nil {
+			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
 				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
@@ -288,12 +290,16 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			a.Status = model.STATUS_PENDING
 			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "queued"
-			err = p.db.UpdateAnalysis(a)
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
 		case "waiting":
 			a.Status = model.STATUS_PENDING
 			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "waiting"
-			err = p.db.UpdateAnalysis(a)
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
 		case "running":
 			a.Status = model.STATUS_RUNNING
 			if a.StartRunning == "" {
@@ -301,12 +307,103 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			}
 			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "running"
-			err = p.db.UpdateAnalysis(a)
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
 		case "new":
 			a.Status = model.STATUS_PENDING
 			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
+		default: // May be "unknown", "deleted", "error" or other...
+			err = errors.New("Job state : " + wfstate.Status())
+			a.Status = model.STATUS_ERROR
+			a.StatusStr = model.StatusStr(a.Status)
+			log.Print("Job in unknown state: " + wfstate.Status())
+			p.db.UpdateAnalysis(a)
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (alignmentid, normtreeid, rawtreeid, outlogid string, err error) {
+	var wfinvocation *golaxy.WorkflowInvocation
+	var wfstate *golaxy.WorkflowStatus
+
+	// Initializes FastTree launcher
+	l := p.galaxy.NewWorkflowLauncher(historyid, p.fasttreeid)
+	l.AddFileInput("0", alignfileid, "hda")
+	l.AddParameter(5, "support_condition|support", "boot")
+	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
+	l.AddParameter(5, "support_condition|algorithm", a.AlgorithmStr())
+
+	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
+		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
+		return
+	}
+
+	// Now waits for the end of the execution
+	for {
+		if wfstate, err = p.galaxy.CheckWorkflow(wfinvocation); err != nil {
+			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
+			return
+		}
+		switch wfstate.Status() {
+		case "ok":
+			if alignmentid, err = wfstate.StepOutputFileId(1, "outputAlignment"); err != nil {
+				log.Print("Error while getting alignment file from FastTree oneclick workflow: " + err.Error())
+				return
+			}
+			if normtreeid, err = wfstate.StepOutputFileId(5, "booster_support_tree"); err != nil {
+				log.Print("Error while getting support tree output file id of FastTree oneclick workflow: " + err.Error())
+				return
+			}
+			if a.Algorithm == model.ALGORITHM_BOOSTER {
+				if rawtreeid, err = wfstate.StepOutputFileId(5, "avgdist"); err != nil {
+					log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+					return
+				}
+			}
+			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
+				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
+				return
+			}
+			a.End = time.Now().Format(time.RFC1123)
+			a.Message = "Finished"
+			err = p.db.UpdateAnalysis(a)
+			return
+		case "queued":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "queued"
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
+		case "waiting":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "waiting"
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
+		case "running":
+			a.Status = model.STATUS_RUNNING
+			if a.StartRunning == "" {
+				a.StartRunning = time.Now().Format(time.RFC1123)
+			}
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "running"
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
+		case "new":
+			a.Status = model.STATUS_PENDING
+			a.StatusStr = model.StatusStr(a.Status)
+			a.Message = "New Job"
+			if err = p.db.UpdateAnalysis(a); err != nil {
+				log.Print("Problem updating job: " + err.Error())
+			}
 		default: // May be "unknown", "deleted", "error" or other...
 			err = errors.New("Job state : " + wfstate.Status())
 			a.Status = model.STATUS_ERROR
@@ -337,15 +434,33 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
 	if a.SeqFile != "" {
+		if a.Workflow == model.WORKFLOW_NIL {
+			err = errors.New("Phylogenetic workflow to launch is not defined")
+			log.Print("Error while Uploading reference sequence file: " + err.Error())
+			return
+		}
 		// We upload ref sequence file to history
 		seqid, _, err = p.galaxy.UploadFile(historyid, a.SeqFile, "fasta")
 		if err != nil {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
-		if alignid, normtreeid, rawtreeid, outlogid, err = p.submitPhyML(a, historyid, seqid); err != nil {
-			log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
+
+		if a.Workflow == model.WORKFLOW_PHYML_SMS {
+			if alignid, normtreeid, rawtreeid, outlogid, err = p.submitPhyML(a, historyid, seqid); err != nil {
+				log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
+				return
+			}
+		} else if a.Workflow == model.WORKFLOW_FASTTREE {
+			if alignid, normtreeid, rawtreeid, outlogid, err = p.submitFastTree(a, historyid, seqid); err != nil {
+				log.Print("Error while launching FastTree oneclick workflow : " + err.Error())
+				return
+			}
+		} else {
+			err = errors.New("Error while launching oneclick workflow, unkown workflow")
+			log.Print(err.Error())
 			return
+
 		}
 
 		// And we download alignment file

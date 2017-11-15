@@ -202,6 +202,8 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	var a *model.Analysis
 	var algorithm string
 	var nbootint int64
+	var nbootrep string
+	var workflow string
 	var email string
 
 	parserr := r.ParseMultipartForm(32 << 20)
@@ -239,23 +241,25 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	email = r.FormValue("email")
 	algorithm = r.FormValue("algorithm")
-
 	if algorithm != "booster" && algorithm != "classical" {
 		io.LogError(errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
 		errorHandler(w, r, errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
 		return
 	}
-	nbootrep := r.FormValue("nboot")
+
+	workflow = r.FormValue("workflow")
+
+	nbootrep = r.FormValue("nboot")
 	if nbootint, err = strconv.ParseInt(nbootrep, 10, 64); err != nil && galaxyprocessor {
 		io.LogError(err)
 		errorHandler(w, r, err)
 		return
 	}
-	if nbootint > 100 {
-		nbootint = 100
+	if nbootint > 1000 {
+		nbootint = 1000
 	}
 
-	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, email, int(nbootint)); err != nil {
+	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, email, int(nbootint), workflow); err != nil {
 		err = errors.New("Error while creating a new analysis: " + err.Error())
 		io.LogError(err)
 		errorHandler(w, r, err)
@@ -272,27 +276,8 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 	var a *model.Analysis
 	a, err := getAnalysis(id)
 	if err != nil {
-		a = &model.Analysis{
-			Id:           "none",
-			EMail:        "",
-			SeqFile:      "",
-			NbootRep:     0,
-			Alignfile:    "",
-			Reffile:      "",
-			Bootfile:     "",
-			Result:       "",
-			RawTree:      "",
-			ResLogs:      "",
-			Status:       model.STATUS_NOT_EXISTS,
-			Algorithm:    model.ALGORITHM_CLASSICAL,
-			StatusStr:    model.StatusStr(model.STATUS_NOT_EXISTS),
-			Message:      err.Error(),
-			Nboot:        0,
-			Collapsed:    "",
-			StartPending: "",
-			StartRunning: "",
-			End:          "",
-		}
+		a = model.NewAnalysis()
+		a.Message = err.Error()
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -316,27 +301,8 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	var a *model.Analysis
 	a, err := getAnalysis(id)
 	if err != nil {
-		a = &model.Analysis{
-			Id:           "none",
-			EMail:        "",
-			SeqFile:      "",
-			NbootRep:     0,
-			Alignfile:    "",
-			Reffile:      "",
-			Bootfile:     "",
-			Result:       "",
-			RawTree:      "",
-			ResLogs:      "",
-			Status:       model.STATUS_NOT_EXISTS,
-			Algorithm:    model.ALGORITHM_CLASSICAL,
-			StatusStr:    model.StatusStr(model.STATUS_NOT_EXISTS),
-			Message:      err.Error(),
-			Nboot:        0,
-			Collapsed:    "",
-			StartPending: "",
-			StartRunning: "",
-			End:          "",
-		}
+		a = model.NewAnalysis()
+		a.Message = err.Error()
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

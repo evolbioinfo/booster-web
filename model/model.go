@@ -29,6 +29,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -42,15 +43,20 @@ const (
 
 	ALGORITHM_BOOSTER   = 6
 	ALGORITHM_CLASSICAL = 7
+
+	WORKFLOW_NIL       = -1
+	WORKFLOW_PHYML_SMS = 8
+	WORKFLOW_FASTTREE  = 9
 )
 
 type Analysis struct {
 	Id    string `json:"id"` // sha256 sum of reftree and boottree files
 	EMail string `json:"-"`  // EMail of the job creator, may be empty string ""
-	// Three next attributes are for users who want to build the trees using PhyML-SMS of galaxy
+	// Four next attributes are for users who want to build the trees using PhyML-SMS of galaxy
 	SeqFile   string `json:"-"`        // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
 	NbootRep  int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
 	Alignfile string `json:"align"`    // Alignment result file returned by galaxy workflow if users gave a input sequence file
+	Workflow  int    `json:"workflow"` // The galaxy workflow that has been run. 8:PHYML-SMS, 9: FASTTREE
 
 	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
 	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
@@ -68,47 +74,101 @@ type Analysis struct {
 	End          string `json:"end"`          // Analysis End time
 }
 
-func StatusStr(status int) string {
+func NewAnalysis() (a *Analysis) {
+	a = &Analysis{
+		Id:           "none",
+		EMail:        "",
+		SeqFile:      "",
+		NbootRep:     0,
+		Alignfile:    "",
+		Workflow:     WORKFLOW_NIL,
+		Reffile:      "",
+		Bootfile:     "",
+		Result:       "",
+		RawTree:      "",
+		ResLogs:      "",
+		Status:       STATUS_NOT_EXISTS,
+		Algorithm:    ALGORITHM_CLASSICAL,
+		StatusStr:    StatusStr(STATUS_NOT_EXISTS),
+		Message:      "",
+		Nboot:        0,
+		Collapsed:    "",
+		StartPending: "",
+		StartRunning: "",
+		End:          "",
+	}
+	return
+}
+
+func StatusStr(status int) (st string) {
 	switch status {
 	case STATUS_NOT_EXISTS:
-		return "Analysis does not exist"
+		st = "Analysis does not exist"
 	case STATUS_PENDING:
-		return "Pending"
+		st = "Pending"
 	case STATUS_RUNNING:
-		return "Running"
+		st = "Running"
 	case STATUS_FINISHED:
-		return "Finished"
+		st = "Finished"
 	case STATUS_ERROR:
-		return "Error"
+		st = "Error"
 	case STATUS_CANCELED:
-		return "Canceled"
+		st = "Canceled"
 	case STATUS_TIMEOUT:
-		return "Timeout"
+		st = "Timeout"
+	default:
+		st = "Unknown"
+	}
+	return
+}
+
+func (a *Analysis) AlgorithmStr() (algo string) {
+	switch a.Algorithm {
+	case ALGORITHM_BOOSTER:
+		algo = "booster"
+	case ALGORITHM_CLASSICAL:
+		algo = "classical"
+	default:
+		algo = "unknown"
+	}
+	return
+}
+
+func AlgorithmConst(algorithm string) (a int, err error) {
+	switch algorithm {
+	case "booster":
+		a = ALGORITHM_BOOSTER
+	case "classical":
+		a = ALGORITHM_CLASSICAL
+	default:
+		err = errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm))
+	}
+	return
+}
+
+func (a *Analysis) WorkflowStr() string {
+	switch a.Workflow {
+	case WORKFLOW_PHYML_SMS:
+		return "PhyML-SMS"
+	case WORKFLOW_FASTTREE:
+		return "FastTree"
+	case WORKFLOW_NIL:
+		return "Bootstrap alone"
 	default:
 		return "Unknown"
 	}
 }
 
-func AlgorithmStr(algorithm int) string {
-	switch algorithm {
-	case ALGORITHM_BOOSTER:
-		return "booster"
-	case ALGORITHM_CLASSICAL:
-		return "classical"
+func WorkflowConst(workflow string) (w int, err error) {
+	switch workflow {
+	case "PhyML-SMS":
+		w = WORKFLOW_PHYML_SMS
+	case "FastTree":
+		w = WORKFLOW_FASTTREE
 	default:
-		return "unknown"
+		err = errors.New(fmt.Sprintf("Phylogenetic workflow does not exist: %s", workflow))
 	}
-}
-
-func AlgorithmConst(algorithm string) (int, error) {
-	switch algorithm {
-	case "booster":
-		return ALGORITHM_BOOSTER, nil
-	case "classical":
-		return ALGORITHM_CLASSICAL, nil
-	default:
-		return -1, errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm))
-	}
+	return
 }
 
 func (a *Analysis) DelTemp() {
@@ -137,5 +197,28 @@ func (a *Analysis) DelTemp() {
 			log.Print(err)
 		}
 	}
+}
 
+// Returns the run time of the analysis from the start pending time
+// If end date is not filled yet, takes now(). If some dates have
+// format issues: returns "?"
+func (a *Analysis) RunTime() string {
+	var start, end time.Time
+	var delta time.Duration
+	var err error
+
+	if start, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
+		return "?"
+	}
+
+	if a.End == "" {
+		end = time.Now()
+	} else {
+		if end, err = time.Parse(time.RFC1123, a.End); err != nil {
+			return "?"
+		}
+	}
+
+	delta = end.Sub(start)
+	return delta.String()
 }

@@ -38,13 +38,21 @@ BOOSTER - Run
       <label for="refseqs">Input Sequences</label>
       <input type="file" class="form-control-file" id="refseqs" aria-describedby="refSeqsHelp" name="refseqs" />
       <small id="refSeqsHelp" class="form-text text-muted">Input sequences (Fasta format, possibly gzipped with extension .gz only).
-	If given, <a href="https://ngphylogeny.fr/workflows/oneclick/">PHYML-SMS oneclick</a> workflow will be executed to build reference and bootstrap trees,
+	If given, one of the <a href="https://ngphylogeny.fr/workflows/oneclick/">NGPhylogeny.fr oneclick</a> workflows will be executed to build reference and bootstrap trees,
 	and no tree file given below will be taken into account.</small>
     </div>
     <div>
       <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
-      <input style="max-width:500px;" type="range" value="40" min="2" max="100" id="nboot"  name="nboot"  oninput="updateNbootInput(this.value);"/>
+      <input style="max-width:500px;" type="range" value="40" min="2" max="1000" id="nboot"  name="nboot"  oninput="updateNbootInput(this.value);"/>
       <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
+    </div>
+    <div>
+      <label for="workflow">Workflow to run</label>
+      <select id="workflow" name="workflow" class="form-control" aria-describedby="workflowHelp">
+	<option value="PhyML-SMS" selected>NGPhylogeny.fr PhyML-SMS oneclick (slower, for small/medium datasets)</option>
+	<option value="FastTree">NGPhylogeny.fr FastTree oneclick (faster, for large datasets)</option> 
+      </select>
+      <small id="workflowHelp" class="form-text text-muted">Choose the phylogenetic workflow to run: 1) PhyML-SMS or 2) FastTree. These are the "oneclick" workflows defined in <a href="https://ngphylogeny.fr/workflows/oneclick/">ngphylogeny.fr</a>.</small>
     </div>
   </fieldset>
   {{ end }}
