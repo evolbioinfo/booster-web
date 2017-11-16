@@ -276,7 +276,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 					return
 				}
 			}
-			if outlogid, err = wfstate.StepOutputFileId(5, "bootsterlog"); err != nil {
+			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
 				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
