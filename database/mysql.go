@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 
 	"database/sql"
 	"github.com/fredericlemoine/booster-web/model"
@@ -45,24 +44,24 @@ type MySQLBoosterwebDB struct {
 }
 
 type dbanalysis struct {
-	id           string `mysql-type:varchar(100)` // Id of the analysis
-	email        string `mysql-type:varchar(100)` // Email of the analysis creator
-	seqfile      string `mysql-type:blob`         // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
-	nbootrep     int    `mysql-type:int`          // Number of bootstrap replicates given by the user to build the bootstrap trees
-	alignfile    string `mysql-type:blob`         // alignment input file (if user wants to build the trees)
-	workflow     int    `mysql-type:int`          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
-	reffile      string `mysql-type:blob`         // reference tree file
-	bootfile     string `mysql-type:blob`         // boot tree file
-	results      string `mysql-type:longtext`     // result tree with normalize supports
-	rawtree      string `mysql-type:longtext`     // result tree with raw <id|avg_dist|depth> as branch names
-	reslogs      string `mysql-type:longtext`     // log file
-	status       int    `mysql-type:int`          // Status of the analysis
-	algorithm    int    `mysql-type:int`          // Algorithm used
-	message      string `mysql-type:message`      // Optional message
-	nboot        int    `mysql-type:int`          // number of bootstrap trees
-	startpending string `mysql-type:varchar(100)` // date of job being submited
-	startrunning string `mysql-type:varchar(100)` // date of job being running
-	end          string `mysql-type:varchar(100)` // date of job finished
+	id           string `mysql-type:"varchar(100)" mysql-other:"NOT NULL PRIMARY KEY"` // Id of the analysis
+	email        string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Email of the analysis creator
+	seqfile      string `mysql-type:"blob"`                                            // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	nbootrep     int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
+	alignfile    string `mysql-type:"blob"`                                            // alignment input file (if user wants to build the trees)
+	workflow     int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
+	reffile      string `mysql-type:"blob"`                                            // reference tree file
+	bootfile     string `mysql-type:"blob"`                                            // boot tree file
+	results      string `mysql-type:"longtext"`                                        // result tree with normalize supports
+	rawtree      string `mysql-type:"longtext"`                                        // result tree with raw <id|avg_dist|depth> as branch names
+	reslogs      string `mysql-type:"longtext"`                                        // log file
+	status       int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
+	algorithm    int    `mysql-type:"int" mysql-default:"7"`                           // Algorithm used
+	message      string `mysql-type:"longtext"`                                        // Optional message
+	nboot        int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
+	startpending string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
+	startrunning string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being running
+	end          string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job finished
 }
 
 /* Returns a new database */
@@ -187,12 +186,34 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 }
 
 /* Check if table is present otherwise creates it */
-func (db *MySQLBoosterwebDB) InitDatabase() error {
+func (db *MySQLBoosterwebDB) InitDatabase() (err error) {
 	log.Print("Initializing mysql Database")
-	_, err := db.db.Exec(
-		"CREATE TABLE if not exists analysis (id varchar(100) not null primary key, email varchar(100), seqfile blob, nbootrep int, alignfile blob, workflow int, reffile blob, bootfile blob, results longtext, rawtree longtext, reslogs longtext, status int, algorithm int, message blob, nboot int, startpending varchar(100), startrunning varchar(100), end varchar(100))")
-
-	if err == nil {
+	query := "CREATE TABLE if not exists analysis ("
+	dba := dbanalysis{}
+	dbanalysistype := reflect.ValueOf(dba).Type()
+	fields := dbanalysistype.NumField()
+	for i := 0; i < fields; i++ {
+		field := dbanalysistype.Field(i)
+		if mysqltype, mysqltypeok := field.Tag.Lookup("mysql-type"); mysqltypeok {
+			mysqldefault, mysqldefaultok := field.Tag.Lookup("mysql-default")
+			mysqlother, mysqlotherok := field.Tag.Lookup("mysql-other")
+			if i > 0 {
+				query += ","
+			}
+			query += field.Name + " " + mysqltype
+			if mysqlotherok {
+				query += " " + mysqlother
+			}
+			// If there is a default value for this field
+			if mysqldefaultok {
+				query += " DEFAULT " + mysqldefault
+			}
+		} else {
+			return errors.New(fmt.Sprintf("Cannot create table, dbanalysis struct element %s does not have mysql type", field.Name))
+		}
+	}
+	query += ");"
+	if _, err = db.db.Exec(query); err == nil {
 		err = db.checkColumns()
 	}
 	return err
@@ -218,19 +239,22 @@ func (db *MySQLBoosterwebDB) checkColumns() error {
 	fields := dbanalysistype.NumField()
 	for i := 0; i < fields; i++ {
 		field := dbanalysistype.Field(i)
-		if strings.HasPrefix(string(field.Tag), "mysql-type:") {
-			_, ok := cols[field.Name]
-			if !ok {
+		if mysqltype, mysqltypeok := field.Tag.Lookup("mysql-type"); mysqltypeok {
+			mysqldefault, mysqldefaultok := field.Tag.Lookup("mysql-default")
+			mysqlother, mysqlotherok := field.Tag.Lookup("mysql-other")
+			if _, colok := cols[field.Name]; !colok {
 				log.Print(fmt.Sprintf("Adding database column %s", field.Name))
-
-				tabs := strings.Split(string(field.Tag), ":")
-				if len(tabs) == 2 {
-					_, err = db.db.Exec("ALTER TABLE analysis ADD COLUMN " + field.Name + " " + tabs[1])
-					if err != nil {
-						return err
-					}
-				} else {
-					return errors.New(fmt.Sprintf("dbanalysis struct element %s does not have proper mysql type: '%s'", field.Name, string(field.Tag)))
+				query := "ALTER TABLE analysis ADD COLUMN " + field.Name + " " + mysqltype
+				// If there is a default value for this field
+				if mysqldefaultok {
+					query += " DEFAULT " + mysqldefault
+				}
+				if mysqlotherok {
+					query += " " + mysqlother
+				}
+				_, err = db.db.Exec(query)
+				if err != nil {
+					return err
 				}
 			}
 		} else {
