@@ -220,25 +220,21 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 
 		// No given sequence file
 		// Then we take tree files
-		reftree, refhandler, err = r.FormFile("reftree")
-		defer reftree.Close()
-
-		if err != nil {
+		if reftree, refhandler, err = r.FormFile("reftree"); err != nil {
 			err = errors.New("No reference tree file given (nor sequence file): " + err.Error())
 			io.LogError(err)
 			errorHandler(w, r, err)
 			return
 		}
+		defer reftree.Close()
 
-		boottree, boothandler, err = r.FormFile("boottrees")
-		defer boottree.Close()
-
-		if err != nil {
+		if boottree, boothandler, err = r.FormFile("boottrees"); err != nil {
 			err = errors.New("No bootstrap tree file given (nor sequence file): " + err.Error())
 			io.LogError(err)
 			errorHandler(w, r, err)
 			return
 		}
+		defer boottree.Close()
 	}
 	email = r.FormValue("email")
 
