@@ -270,7 +270,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 				return
 			}
 
-			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
+			if tbenormtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
 				log.Print("Error while getting raw distance tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
