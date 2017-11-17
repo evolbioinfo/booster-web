@@ -176,7 +176,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			var id string
 
 			// fbp tree file
-			if id, ok = files["fbp_norm_tree"]; !ok {
+			if id, ok = files["fbp_tree"]; !ok {
 				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
 				return
 			}
