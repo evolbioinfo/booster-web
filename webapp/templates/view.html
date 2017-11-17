@@ -48,7 +48,6 @@ BOOSTER - Results {{.Id}}
       <li>Ended on: {{.End}}</li>
       <li>Total time elapsed: {{ .RunTime }}</li>
       <li>Workflow: {{ .WorkflowStr }}</li>
-      <li>Boostrap: {{ .AlgorithmStr }}</li>
       {{/* <li>#Bootstrap trees: {{.Nboot}}</li> */}}
       <li>Output message: {{.Message}}</li>
     </ul>
@@ -65,19 +64,21 @@ BOOSTER - Results {{.Id}}
 	<a class="label label-default" onclick="downloadAlignment({{.Id}})">Download alignment (fasta)</a>
       </li>
       {{ end }}
-      <li>Tree with normalized supports<br/>
-	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false">Export to iTOL</a>
-	<a class="label label-default" onclick="downloadNormTree({{.Id}})">Download tree (newick)</a>
+      <li>Tree with FBP supports<br/>
+	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false/true">Export to iTOL</a>
+	<a class="label label-default" onclick="downloadFBPTree({{.Id}})">Download tree (newick)</a>
       </li>
-      {{if (eq .Algorithm 6) }}
-      <li>Tree with raw average transfer distances (and branch ids)<br/>
-	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/true">Export to iTOL</a>
-	<a class="label label-default" onclick="downloadRawTree({{.Id}})">Download tree (newick)</a>
+      <li>Tree with TBE normalized supports<br/>
+	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false/false">Export to iTOL</a>
+	<a class="label label-default" onclick="downloadTBENormTree({{.Id}})">Download tree (newick)</a>
       </li>
-      <li>Logs<br/>
+      <li>Tree with TBE raw average transfer distances (and branch ids)<br/>
+	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/true/false">Export to iTOL</a>
+	<a class="label label-default" onclick="downloadTBERawTree({{.Id}})">Download tree (newick)</a>
+      </li>
+      <li>TBE Logs (global and per branch taxa transfer scores)<br/>
 	<a class="label label-info" onclick="downloadLogs({{.Id}})">Download logs</a>
       </li>
-      {{ end }}
     </ul>
   </div>
 </div>

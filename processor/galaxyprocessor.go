@@ -62,7 +62,6 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 		log.Print("Queue is full, cancelling job " + a.Id)
 		//Channel full. Discarding value
 		a.Status = model.STATUS_CANCELED
-		a.StatusStr = model.StatusStr(a.Status)
 		a.End = time.Now().Format(time.RFC1123)
 		a.Message = "Computing queue is full, please try again in a few minutes"
 		/* Insert analysis */
@@ -131,12 +130,11 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 					log.Print("Error while submitting to galaxy: " + err.Error())
 					a.Status = model.STATUS_ERROR
 					a.End = time.Now().Format(time.RFC1123)
-					a.StatusStr = model.StatusStr(a.Status)
 					a.Message = err.Error()
 				}
 				p.rmRunningJob(a)
 				p.db.UpdateAnalysis(a)
-				if err = p.notifier.Notify(a.StatusStr, a.Id, a.EMail); err != nil {
+				if err = p.notifier.Notify(a.StatusStr(), a.Id, a.EMail); err != nil {
 					log.Print(err)
 				}
 			}
@@ -145,12 +143,11 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	}
 }
 
-func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid, bootfileid string) (normtreeid, rawtreeid, outlogid string, err error) {
+func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid, bootfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	// We launch the job
 	var jobs []string
 
 	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
-	tl.AddParameter("algorithm", a.AlgorithmStr())
 	tl.AddFileInput("ref", reffileid, "hda")
 	tl.AddFileInput("boot", bootfileid, "hda")
 
@@ -177,40 +174,44 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 		case "ok":
 			var ok bool
 			var id string
-			// Normalized suport tree file
-			if id, ok = files["support"]; !ok {
+
+			// fbp tree file
+			if id, ok = files["fbp_norm_tree"]; !ok {
 				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
 				return
 			}
-			normtreeid = id
+			fbptreeid = id
 
-			if a.Algorithm == model.ALGORITHM_BOOSTER {
-				// Raw average distance tree file
-				if id, ok = files["avgdist"]; !ok {
-					err = errors.New("Output file (raw distance tree) not present in the galaxy server")
-					return
-				}
-				rawtreeid = id
+			// Normalized suport tree file
+			if id, ok = files["tbe_norm_tree"]; !ok {
+				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
+				return
 			}
+			tbenormtreeid = id
+
+			// Raw average distance tree file
+			if id, ok = files["tbe_raw_tree"]; !ok {
+				err = errors.New("Output file (raw distance tree) not present in the galaxy server")
+				return
+			}
+			tberawtreeid = id
 
 			// Log file
-			if id, ok = files["bootstraplog"]; !ok {
+			if id, ok = files["tbe_log"]; !ok {
 				err = errors.New("Output file (log file) not present in the galaxy server")
 				return
 			}
-			outlogid = id
+			tbelogid = id
 			a.End = time.Now().Format(time.RFC1123)
 			a.Message = "Finished"
 			err = p.db.UpdateAnalysis(a)
 			return
 		case "queued":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "queued"
 			err = p.db.UpdateAnalysis(a)
 		case "waiting":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "waiting"
 			err = p.db.UpdateAnalysis(a)
 		case "running":
@@ -218,18 +219,15 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			if a.StartRunning == "" {
 				a.StartRunning = time.Now().Format(time.RFC1123)
 			}
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "running"
 			err = p.db.UpdateAnalysis(a)
 		case "new":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
 		default:
 			err = errors.New("Unkown Job state: " + state)
 			a.Status = model.STATUS_ERROR
-			a.StatusStr = model.StatusStr(a.Status)
 			log.Print("Job in unknown state: " + state)
 			p.db.UpdateAnalysis(a)
 			return
@@ -239,7 +237,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 }
 
 // rawtreeid may be "" if support is classical/FBP
-func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (alignmentid, normtreeid, rawtreeid, outlogid string, err error) {
+func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
 
@@ -248,7 +246,6 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-	l.AddParameter(5, "support_condition|algorithm", a.AlgorithmStr())
 
 	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
 		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
@@ -267,18 +264,23 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 				log.Print("Error while getting alignment file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
-			if normtreeid, err = wfstate.StepOutputFileId(5, "booster_support_tree"); err != nil {
+
+			if fbptreeid, err = wfstate.StepOutputFileId(5, "output_tree"); err != nil {
 				log.Print("Error while getting support tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
 
-			if a.Algorithm == model.ALGORITHM_BOOSTER {
-				if rawtreeid, err = wfstate.StepOutputFileId(5, "avgdist"); err != nil {
-					log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
-					return
-				}
+			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
+				log.Print("Error while getting raw distance tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				return
 			}
-			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
+
+			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_raw_tree"); err != nil {
+				log.Print("Error while getting support tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				return
+			}
+
+			if tbelogid, err = wfstate.StepOutputFileId(5, "tbe_log"); err != nil {
 				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
@@ -288,14 +290,12 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			return
 		case "queued":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "queued"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
 			}
 		case "waiting":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "waiting"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
@@ -305,20 +305,17 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			if a.StartRunning == "" {
 				a.StartRunning = time.Now().Format(time.RFC1123)
 			}
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "running"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
 			}
 		case "new":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
 		default: // May be "unknown", "deleted", "error" or other...
 			err = errors.New("Job state : " + wfstate.Status())
 			a.Status = model.STATUS_ERROR
-			a.StatusStr = model.StatusStr(a.Status)
 			log.Print("Job in unknown state: " + wfstate.Status())
 			p.db.UpdateAnalysis(a)
 			return
@@ -327,7 +324,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	}
 }
 
-func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (alignmentid, normtreeid, rawtreeid, outlogid string, err error) {
+func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
 
@@ -336,7 +333,6 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-	l.AddParameter(5, "support_condition|algorithm", a.AlgorithmStr())
 
 	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
 		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
@@ -355,17 +351,23 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 				log.Print("Error while getting alignment file from FastTree oneclick workflow: " + err.Error())
 				return
 			}
-			if normtreeid, err = wfstate.StepOutputFileId(5, "booster_support_tree"); err != nil {
+
+			if fbptreeid, err = wfstate.StepOutputFileId(5, "output_tree"); err != nil {
+				log.Print("Error while getting fbp support tree output file id of FastTree oneclick workflow: " + err.Error())
+				return
+			}
+
+			if tbenormtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
 				log.Print("Error while getting support tree output file id of FastTree oneclick workflow: " + err.Error())
 				return
 			}
-			if a.Algorithm == model.ALGORITHM_BOOSTER {
-				if rawtreeid, err = wfstate.StepOutputFileId(5, "avgdist"); err != nil {
-					log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
-					return
-				}
+
+			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_raw_tree"); err != nil {
+				log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				return
 			}
-			if outlogid, err = wfstate.StepOutputFileId(5, "boosterlog"); err != nil {
+
+			if tbelogid, err = wfstate.StepOutputFileId(5, "tbe_log"); err != nil {
 				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
 				return
 			}
@@ -375,14 +377,12 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 			return
 		case "queued":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "queued"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
 			}
 		case "waiting":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "waiting"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
@@ -392,14 +392,12 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 			if a.StartRunning == "" {
 				a.StartRunning = time.Now().Format(time.RFC1123)
 			}
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "running"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
 			}
 		case "new":
 			a.Status = model.STATUS_PENDING
-			a.StatusStr = model.StatusStr(a.Status)
 			a.Message = "New Job"
 			if err = p.db.UpdateAnalysis(a); err != nil {
 				log.Print("Problem updating job: " + err.Error())
@@ -407,7 +405,6 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 		default: // May be "unknown", "deleted", "error" or other...
 			err = errors.New("Job state : " + wfstate.Status())
 			a.Status = model.STATUS_ERROR
-			a.StatusStr = model.StatusStr(a.Status)
 			log.Print("Job in unknown state: " + wfstate.Status())
 			p.db.UpdateAnalysis(a)
 			return
@@ -421,7 +418,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	var reffileid string
 	var bootfileid string
 	var seqid string
-	var alignid, normtreeid, rawtreeid, outlogid string
+	var alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
 
 	var historyid string
 	// We create an history
@@ -447,12 +444,12 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		}
 
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if alignid, normtreeid, rawtreeid, outlogid, err = p.submitPhyML(a, historyid, seqid); err != nil {
+			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, historyid, seqid); err != nil {
 				log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if alignid, normtreeid, rawtreeid, outlogid, err = p.submitFastTree(a, historyid, seqid); err != nil {
+			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, historyid, seqid); err != nil {
 				log.Print("Error while launching FastTree oneclick workflow : " + err.Error())
 				return
 			}
@@ -486,7 +483,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			return
 		}
 		// Now we submit the booster tool
-		normtreeid, rawtreeid, outlogid, err = p.submitBooster(a, historyid, reffileid, bootfileid)
+		fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, historyid, reffileid, bootfileid)
 	} else {
 		log.Print("No Reference tree or Bootstrap tree given")
 		err = errors.New("No Reference tree or Bootstrap tree given")
@@ -494,28 +491,31 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	}
 
 	// And we download resulting files
-	if outcontent, err = p.galaxy.DownloadFile(historyid, normtreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(historyid, fbptreeid); err != nil {
+		log.Print("Error while downloading fbp tree file: " + err.Error())
+		return
+	}
+	a.FbpTree = string(outcontent)
+
+	if outcontent, err = p.galaxy.DownloadFile(historyid, tbenormtreeid); err != nil {
 		log.Print("Error while downloading support file: " + err.Error())
 		return
 	}
-	a.Result = string(outcontent)
+	a.TbeNormTree = string(outcontent)
 
-	if rawtreeid != "" {
-		if outcontent, err = p.galaxy.DownloadFile(historyid, rawtreeid); err != nil {
-			log.Print("Error while downloading avg dist tree file: " + err.Error())
-			return
-		}
-		a.RawTree = string(outcontent)
+	if outcontent, err = p.galaxy.DownloadFile(historyid, tberawtreeid); err != nil {
+		log.Print("Error while downloading avg dist tree file: " + err.Error())
+		return
 	}
+	a.TbeRawTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(historyid, outlogid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(historyid, tbelogid); err != nil {
 		log.Print("Error while downloading log file: " + err.Error())
 		return
 	}
-	a.ResLogs = string(outcontent)
+	a.TbeLogs = string(outcontent)
 
 	a.Status = model.STATUS_FINISHED
-	a.StatusStr = model.StatusStr(a.Status)
 	p.db.UpdateAnalysis(a)
 
 	// And we delete the history

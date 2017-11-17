@@ -56,29 +56,43 @@ function updateTreeCanvas(){
     });
 }
 
-function downloadNormTree(id){
+function downloadTBENormTree(id){
     $.ajax({
-	url: "/api/analysis/"+id+"/0",
+	url: "/api/analysis/"+id,
 	dataType: 'json',
  	async: true,
  	success: function(data) {
 	    var analysis = data;
 	    if(analysis.status == 2 || analysis.status == 5){
-		download(analysis.result, "bootstrap_norm.nh", "text/plain");
+		download(analysis.tbenormtree, "boosterweb_tbe_norm.nh", "text/plain");
 	    }
 	}
     });
 }
 
-function downloadRawTree(id){
+function downloadTBERawTree(id){
     $.ajax({
-	url: "/api/analysis/"+id+"/0",
+	url: "/api/analysis/"+id,
 	dataType: 'json',
  	async: true,
  	success: function(data) {
 	    var analysis = data;
 	    if(analysis.status == 2 || analysis.status == 5){
-		download(analysis.rawtree, "bootstrap_avgdist.nh", "text/plain");
+		download(analysis.tberawtree, "boosterweb_tbe_raw.nh", "text/plain");
+	    }
+	}
+    });
+}
+
+function downloadFBPTree(id){
+    $.ajax({
+	url: "/api/analysis/"+id,
+	dataType: 'json',
+ 	async: true,
+ 	success: function(data) {
+	    var analysis = data;
+	    if(analysis.status == 2 || analysis.status == 5){
+		download(analysis.fbptree, "boosterweb_fbp.nh", "text/plain");
 	    }
 	}
     });
@@ -86,7 +100,7 @@ function downloadRawTree(id){
 
 function downloadAlignment(id){
     $.ajax({
-	url: "/api/analysis/"+id+"/0",
+	url: "/api/analysis/"+id,
 	dataType: 'json',
  	async: true,
  	success: function(data) {
@@ -100,13 +114,13 @@ function downloadAlignment(id){
 
 function downloadLogs(id){
     $.ajax({
-	url: "/api/analysis/"+id+"/0",
+	url: "/api/analysis/"+id,
 	dataType: 'json',
  	async: true,
  	success: function(data) {
 	    var analysis = data;
 	    if(analysis.status == 2 || analysis.status == 5){
-		download(analysis.reslogs, "bootstrap_logs.txt", "text/plain");
+		download(analysis.tbelogs, "boosterweb_tbe_logs.txt", "text/plain");
 	    }
 	}
     });

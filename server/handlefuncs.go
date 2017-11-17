@@ -137,7 +137,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 
 // if rawsupports: Then the tree with raw distances and branch ids is uploaded to itol
 // else the normalized support tree is upploaded.
-func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances bool) {
+func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances bool, fbptree bool) {
 	a, err := getAnalysis(id)
 	if err != nil {
 		io.LogError(err)
@@ -147,10 +147,12 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances
 	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
 		upld := upload.NewItolUploader("", "")
 		var uptree string
-		if rawdistances && a.RawTree != "" {
-			uptree = a.RawTree
+		if fbptree {
+			uptree = a.FbpTree
+		} else if rawdistances {
+			uptree = a.TbeRawTree
 		} else {
-			uptree = a.Result
+			uptree = a.TbeNormTree
 		}
 		t, err := newick.NewParser(strings.NewReader(uptree)).Parse()
 		if err == nil {
@@ -200,7 +202,6 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	var boothandler *multipart.FileHeader
 	var err error
 	var a *model.Analysis
-	var algorithm string
 	var nbootint int64
 	var nbootrep string
 	var workflow string
@@ -240,12 +241,6 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	email = r.FormValue("email")
-	algorithm = r.FormValue("algorithm")
-	if algorithm != "booster" && algorithm != "classical" {
-		io.LogError(errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
-		errorHandler(w, r, errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm)))
-		return
-	}
 
 	workflow = r.FormValue("workflow")
 
@@ -259,7 +254,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		nbootint = 1000
 	}
 
-	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, algorithm, email, int(nbootint), workflow); err != nil {
+	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, email, int(nbootint), workflow); err != nil {
 		err = errors.New("Error while creating a new analysis: " + err.Error())
 		io.LogError(err)
 		errorHandler(w, r, err)
@@ -270,8 +265,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/view/"+a.Id, http.StatusSeeOther)
 }
 
-// 0<=Collapse<=100
-func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64) {
+func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
 	w.Header().Set("Content-Type", "application/json")
 	var a *model.Analysis
 	a, err := getAnalysis(id)
@@ -281,18 +275,6 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string, colla
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
-	if err == nil {
-		/* We collapse lowly supported branches */
-		t.ClearPvalues()
-		a.Result = t.Newick()
-		if collapse > 0 {
-			t.CollapseLowSupport(collapse / 100)
-		}
-		a.Collapsed = t.Newick()
-	} else {
-		a.Message = "Cannot collapse branches : " + err.Error()
 	}
 	json.NewEncoder(w).Encode(a)
 }
@@ -309,19 +291,19 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	}
 
 	if a.Status != model.STATUS_FINISHED {
-		e := errors.New(fmt.Sprintf("Cannot draw image for a non finished analysis, status : %s", model.StatusStr(a.Status)))
+		e := errors.New(fmt.Sprintf("Cannot draw image for a non finished analysis, status : %s", a.StatusStr()))
 		io.LogError(e)
 		http.Error(w, e.Error(), http.StatusInternalServerError)
 		return
 	}
-	if a.Result == "" {
+	if a.TbeNormTree == "" {
 		e := errors.New("Cannot draw image for an empty resulting tree")
 		io.LogError(e)
 		http.Error(w, e.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	t, err := newick.NewParser(strings.NewReader(a.Result)).Parse()
+	t, err := newick.NewParser(strings.NewReader(a.TbeNormTree)).Parse()
 	if err != nil {
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -381,33 +363,33 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
-var validRawNormPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)/(true|false)$")
+var validRawNormPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)/(true|false)/(true|false)$")
 
 //	* string: Analysis ID
 //	* bool: If raw tree of normalized tree should be retrieved
-func makeRawNormHandler(fn func(http.ResponseWriter, *http.Request, string, bool)) http.HandlerFunc {
+func makeRawNormHandler(fn func(http.ResponseWriter, *http.Request, string, bool, bool)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validRawNormPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return
 		}
-		b, _ := strconv.ParseBool(m[3])
-		fn(w, r, m[2], b)
+		rawdist, _ := strconv.ParseBool(m[3])
+		fbptree, _ := strconv.ParseBool(m[4])
+		fn(w, r, m[2], rawdist, fbptree)
 	}
 }
 
-var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)/([0-9]+)$")
+var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)$")
 
-func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string, float64)) http.HandlerFunc {
+func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validApiPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return
 		}
-		f, _ := strconv.ParseFloat(m[3], 64)
-		fn(w, r, m[2], f)
+		fn(w, r, m[2])
 	}
 }
 

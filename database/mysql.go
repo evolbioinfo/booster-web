@@ -52,11 +52,11 @@ type dbanalysis struct {
 	workflow     int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
 	reffile      string `mysql-type:"blob"`                                            // reference tree file
 	bootfile     string `mysql-type:"blob"`                                            // boot tree file
-	results      string `mysql-type:"longtext"`                                        // result tree with normalize supports
-	rawtree      string `mysql-type:"longtext"`                                        // result tree with raw <id|avg_dist|depth> as branch names
-	reslogs      string `mysql-type:"longtext"`                                        // log file
+	fbptree      string `mysql-type:"longtext"`                                        // tree with fbp supports
+	tbenormtree  string `mysql-type:"longtext"`                                        // tree with normalized tbe supports
+	tberawtree   string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
+	tbelogs      string `mysql-type:"longtext"`                                        // tbe log file
 	status       int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
-	algorithm    int    `mysql-type:"int" mysql-default:"7"`                           // Algorithm used
 	message      string `mysql-type:"longtext"`                                        // Optional message
 	nboot        int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
 	startpending string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
@@ -100,7 +100,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT id,email,seqfile,nbootrep,alignfile,workflow,reffile,bootfile,results,rawtree,reslogs,status,algorithm,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
+	rows, err := db.db.Query("SELECT id,email,seqfile,nbootrep,alignfile,workflow,reffile,bootfile,fbptree,tbenormtree,tberawtree,tbelogs,status,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if rows.Next() {
 		if err := rows.Scan(&dban.id, &dban.email, &dban.seqfile, &dban.nbootrep,
 			&dban.alignfile, &dban.workflow, &dban.reffile, &dban.bootfile,
-			&dban.results, &dban.rawtree, &dban.reslogs, &dban.status, &dban.algorithm,
+			&dban.fbptree, &dban.tbenormtree, &dban.tberawtree, &dban.tbelogs, &dban.status,
 			&dban.message, &dban.nboot, &dban.startpending, &dban.startrunning, &dban.end); err != nil {
 			return nil, err
 		}
@@ -131,15 +131,13 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 		Workflow:     dban.workflow,
 		Reffile:      dban.reffile,
 		Bootfile:     dban.bootfile,
-		Result:       dban.results,
-		RawTree:      dban.rawtree,
-		ResLogs:      dban.reslogs,
+		FbpTree:      dban.fbptree,
+		TbeNormTree:  dban.tbenormtree,
+		TbeRawTree:   dban.tberawtree,
+		TbeLogs:      dban.tbelogs,
 		Status:       dban.status,
-		Algorithm:    dban.algorithm,
-		StatusStr:    model.StatusStr(dban.status),
 		Message:      dban.message,
 		Nboot:        dban.nboot,
-		Collapsed:    "",
 		StartPending: dban.startpending,
 		StartRunning: dban.startrunning,
 		End:          dban.end,
@@ -156,10 +154,10 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		return errors.New("Database not opened")
 	}
 	query := `INSERT INTO analysis 
-                    (id, email, seqfile, nbootrep, alignfile, workflow, reffile, bootfile, results, rawtree, reslogs, status, algorithm, message, nboot, startpending, startrunning , end) 
+                    (id, email, seqfile, nbootrep, alignfile, workflow, reffile, bootfile, fbptree,tbenormtree, tberawtree, tbelogs, status, message, nboot, startpending, startrunning , end) 
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
-                  ON DUPLICATE KEY UPDATE alignfile=values(alignfile), results=values(results), rawtree=values(rawtree), reslogs=values(reslogs), 
-                                          status=values(status), algorithm=values(algorithm),workflow=values(workflow), message=values(message), 
+                  ON DUPLICATE KEY UPDATE alignfile=values(alignfile), fbptree=values(fbptree), tbenormtree=values(tbenormtree), tberawtree=values(tberawtree), tbelogs=values(tbelogs), 
+                                          status=values(status),workflow=values(workflow), message=values(message), 
                                           nboot=values(nboot),startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
 	_, err := db.db.Exec(
 		query,
@@ -171,11 +169,11 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		a.Workflow,
 		a.Reffile,
 		a.Bootfile,
-		a.Result,
-		a.RawTree,
-		a.ResLogs,
+		a.FbpTree,
+		a.TbeNormTree,
+		a.TbeRawTree,
+		a.TbeLogs,
 		a.Status,
-		a.Algorithm,
 		a.Message,
 		a.Nboot,
 		a.StartPending,

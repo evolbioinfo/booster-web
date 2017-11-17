@@ -348,16 +348,11 @@ func initEmailNotification(cfg config.Provider) {
 func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	reffile multipart.File, refheader *multipart.FileHeader,
 	bootfile multipart.File, bootheader *multipart.FileHeader,
-	algorithm string, email string, nbootrep int, workflow string) (a *model.Analysis, err error) {
+	email string, nbootrep int, workflow string) (a *model.Analysis, err error) {
 
-	var algo int
 	var uuid string
 	var dir string
 	var seqfile, treefile, boottreefile string
-
-	if algo, err = model.AlgorithmConst(algorithm); err != nil {
-		return
-	}
 
 	uuid = <-uuids
 
@@ -366,8 +361,6 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	a.EMail = email
 	a.NbootRep = nbootrep
 	a.Status = model.STATUS_PENDING
-	a.Algorithm = algo
-	a.StatusStr = model.StatusStr(model.STATUS_PENDING)
 	a.Nboot = 0
 	a.StartPending = time.Now().Format(time.RFC1123)
 

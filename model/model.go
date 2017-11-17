@@ -41,9 +41,6 @@ const (
 	STATUS_CANCELED   = 4
 	STATUS_TIMEOUT    = 5
 
-	ALGORITHM_BOOSTER   = 6
-	ALGORITHM_CLASSICAL = 7
-
 	WORKFLOW_NIL       = -1
 	WORKFLOW_PHYML_SMS = 8
 	WORKFLOW_FASTTREE  = 9
@@ -60,15 +57,13 @@ type Analysis struct {
 
 	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
 	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
-	Result       string `json:"result"`       // resulting newick tree with support
-	RawTree      string `json:"rawtree"`      // result tree with raw <id|avg_dist|depth> as branch names
-	ResLogs      string `json:"reslogs"`      // log file
+	FbpTree      string `json:"fbptree"`      // Tree with Fbp supports
+	TbeNormTree  string `json:"tbenormtree"`  // resulting newick tree with support
+	TbeRawTree   string `json:"tberawtree"`   // result tree with raw <id|avg_dist|depth> as branch names
+	TbeLogs      string `json:"tbelogs"`      // log file
 	Status       int    `json:"status"`       // status code of the analysis
-	Algorithm    int    `json:"algorithm"`    // Algorithm : ALGORITHM_CLASSICAL or ALGORITHM_BOOSTER
-	StatusStr    string `json:"statusstr"`    // status of the analysis (string)
 	Message      string `json:"message"`      // error message if any
 	Nboot        int    `json:"nboot"`        // number of trees that have been processed
-	Collapsed    string `json:"collapsed"`    // Newick representation of collapsed resulting tree if any
 	StartPending string `json:"startpending"` // Analysis queue time
 	StartRunning string `json:"startrunning"` // Analysis Start running time
 	End          string `json:"end"`          // Analysis End time
@@ -84,15 +79,13 @@ func NewAnalysis() (a *Analysis) {
 		Workflow:     WORKFLOW_NIL,
 		Reffile:      "",
 		Bootfile:     "",
-		Result:       "",
-		RawTree:      "",
-		ResLogs:      "",
+		FbpTree:      "",
+		TbeNormTree:  "",
+		TbeRawTree:   "",
+		TbeLogs:      "",
 		Status:       STATUS_NOT_EXISTS,
-		Algorithm:    ALGORITHM_CLASSICAL,
-		StatusStr:    StatusStr(STATUS_NOT_EXISTS),
 		Message:      "",
 		Nboot:        0,
-		Collapsed:    "",
 		StartPending: "",
 		StartRunning: "",
 		End:          "",
@@ -100,8 +93,8 @@ func NewAnalysis() (a *Analysis) {
 	return
 }
 
-func StatusStr(status int) (st string) {
-	switch status {
+func (a *Analysis) StatusStr() (st string) {
+	switch a.Status {
 	case STATUS_NOT_EXISTS:
 		st = "Analysis does not exist"
 	case STATUS_PENDING:
@@ -118,30 +111,6 @@ func StatusStr(status int) (st string) {
 		st = "Timeout"
 	default:
 		st = "Unknown"
-	}
-	return
-}
-
-func (a *Analysis) AlgorithmStr() (algo string) {
-	switch a.Algorithm {
-	case ALGORITHM_BOOSTER:
-		algo = "booster"
-	case ALGORITHM_CLASSICAL:
-		algo = "classical"
-	default:
-		algo = "unknown"
-	}
-	return
-}
-
-func AlgorithmConst(algorithm string) (a int, err error) {
-	switch algorithm {
-	case "booster":
-		a = ALGORITHM_BOOSTER
-	case "classical":
-		a = ALGORITHM_CLASSICAL
-	default:
-		err = errors.New(fmt.Sprintf("Algorithm %s does not exist", algorithm))
 	}
 	return
 }
