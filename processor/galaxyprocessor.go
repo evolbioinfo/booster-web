@@ -420,9 +420,9 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	var seqid string
 	var alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
 
-	var historyid string
+	var history golaxy.HistoryFullInfo
 	// We create an history
-	historyid, err = p.galaxy.CreateHistory("Booster History")
+	history, err = p.galaxy.CreateHistory("Booster History")
 	if err != nil {
 		log.Print("Error while Creating History: " + err.Error())
 		return
@@ -437,19 +437,19 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			return
 		}
 		// We upload ref sequence file to history
-		seqid, _, err = p.galaxy.UploadFile(historyid, a.SeqFile, "fasta")
+		seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqFile, "fasta")
 		if err != nil {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
 
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, historyid, seqid); err != nil {
+			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, history.Id, seqid); err != nil {
 				log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, historyid, seqid); err != nil {
+			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, history.Id, seqid); err != nil {
 				log.Print("Error while launching FastTree oneclick workflow : " + err.Error())
 				return
 			}
@@ -461,7 +461,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		}
 
 		// And we download alignment file
-		if outcontent, err = p.galaxy.DownloadFile(historyid, alignid); err != nil {
+		if outcontent, err = p.galaxy.DownloadFile(history.Id, alignid); err != nil {
 			log.Print("Error while downloading alignment file: " + err.Error())
 			return
 		}
@@ -470,20 +470,20 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	} else if a.Reffile != "" && a.Bootfile != "" {
 		// Otherwise we upload the given ref and boot files
 		// We upload ref tree to history
-		reffileid, _, err = p.galaxy.UploadFile(historyid, a.Reffile, "nhx")
+		reffileid, _, err = p.galaxy.UploadFile(history.Id, a.Reffile, "nhx")
 		if err != nil {
 			log.Print("Error while Uploading ref tree file: " + err.Error())
 			return
 		}
 
 		// We upload boot tree to history
-		bootfileid, _, err = p.galaxy.UploadFile(historyid, a.Bootfile, "nhx")
+		bootfileid, _, err = p.galaxy.UploadFile(history.Id, a.Bootfile, "nhx")
 		if err != nil {
 			log.Print("Error while Uploading boot tree file: " + err.Error())
 			return
 		}
 		// Now we submit the booster tool
-		fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, historyid, reffileid, bootfileid)
+		fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, history.Id, reffileid, bootfileid)
 	} else {
 		log.Print("No Reference tree or Bootstrap tree given")
 		err = errors.New("No Reference tree or Bootstrap tree given")
@@ -491,25 +491,25 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	}
 
 	// And we download resulting files
-	if outcontent, err = p.galaxy.DownloadFile(historyid, fbptreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(history.Id, fbptreeid); err != nil {
 		log.Print("Error while downloading fbp tree file: " + err.Error())
 		return
 	}
 	a.FbpTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(historyid, tbenormtreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(history.Id, tbenormtreeid); err != nil {
 		log.Print("Error while downloading support file: " + err.Error())
 		return
 	}
 	a.TbeNormTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(historyid, tberawtreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(history.Id, tberawtreeid); err != nil {
 		log.Print("Error while downloading avg dist tree file: " + err.Error())
 		return
 	}
 	a.TbeRawTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(historyid, tbelogid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(history.Id, tbelogid); err != nil {
 		log.Print("Error while downloading log file: " + err.Error())
 		return
 	}
@@ -519,7 +519,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	p.db.UpdateAnalysis(a)
 
 	// And we delete the history
-	if _, err = p.galaxy.DeleteHistory(historyid); err != nil {
+	if _, err = p.galaxy.DeleteHistory(history.Id); err != nil {
 		log.Print("Error while deleting history: " + err.Error())
 	}
 
