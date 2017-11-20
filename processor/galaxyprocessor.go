@@ -104,7 +104,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	}
 	log.Print(fmt.Sprintf("Booster galaxy tool id: %s", p.boosterid))
 
-	// Searches the workflow with given id (checks that it exists)
+	// Searches the PhyML-SMS workflow with given id (checks that it exists)
 	if wfids, err2 := p.galaxy.SearchWorkflowIDs(phymlid); err2 != nil {
 		log.Fatal(err2)
 	} else {
@@ -115,6 +115,18 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 		}
 	}
 	log.Print(fmt.Sprintf("PhyML-SMS oneclick galaxy tool id: %s", p.phymlid))
+
+	// Searches the FastTree workflow with given id (checks that it exists)
+	if wfids2, err3 := p.galaxy.SearchWorkflowIDs(fasttreeid); err3 != nil {
+		log.Fatal(err3)
+	} else {
+		if len(wfids2) == 0 {
+			log.Fatal("No FastTree workflow corresponds to the id: " + fasttreeid)
+		} else {
+			p.fasttreeid = wfids2[len(wfids2)-1]
+		}
+	}
+	log.Print(fmt.Sprintf("FastTree oneclick galaxy tool id: %s", p.fasttreeid))
 
 	p.queue = make(chan *model.Analysis, queuesize)
 
