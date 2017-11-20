@@ -188,6 +188,6 @@ func (a *Analysis) RunTime() string {
 		}
 	}
 
-	delta = end.Sub(start)
+	delta = end.Sub(start).Round(time.Second)
 	return delta.String()
 }

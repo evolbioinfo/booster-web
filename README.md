@@ -6,7 +6,7 @@ This interface presents informations about BOOSTER program, and allows to run BO
 Download a release in the [release](https://github.com/fredericlemoine/booster-web/releases) section. You can directly run the executable for your platform.
 
 ## From source
-To compile BOOSTER-WEB, you must [download](https://golang.org/dl/) and [install](https://golang.org/doc/install) Go on your system.
+To compile BOOSTER-WEB, you must [download](https://golang.org/dl/) and [install](https://golang.org/doc/install) Go (version >=1.9) on your system.
 
 Then you just have to type :
 ```
