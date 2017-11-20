@@ -336,6 +336,8 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		t.ReinitIndexes()
 		if !t.Rooted() {
 			deepest := t.DeepestNode()
 			t.Reroot(deepest)
