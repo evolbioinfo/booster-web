@@ -364,23 +364,23 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 				return
 			}
 
-			if fbptreeid, err = wfstate.StepOutputFileId(5, "output_tree"); err != nil {
+			if fbptreeid, err = wfstate.StepOutputFileId(4, "output_tree"); err != nil {
 				log.Print("Error while getting fbp support tree output file id of FastTree oneclick workflow: " + err.Error())
 				return
 			}
 
-			if tbenormtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
+			if tbenormtreeid, err = wfstate.StepOutputFileId(4, "tbe_norm_tree"); err != nil {
 				log.Print("Error while getting support tree output file id of FastTree oneclick workflow: " + err.Error())
 				return
 			}
 
-			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_raw_tree"); err != nil {
-				log.Print("Error while getting raw tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+			if tberawtreeid, err = wfstate.StepOutputFileId(4, "tbe_raw_tree"); err != nil {
+				log.Print("Error while getting raw tree output file id of FastTree oneclick workflow: " + err.Error())
 				return
 			}
 
-			if tbelogid, err = wfstate.StepOutputFileId(5, "tbe_log"); err != nil {
-				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
+			if tbelogid, err = wfstate.StepOutputFileId(4, "tbe_log"); err != nil {
+				log.Print("Error while getting booster log file from FastTree oneclick workflow: " + err.Error())
 				return
 			}
 			a.End = time.Now().Format(time.RFC1123)
