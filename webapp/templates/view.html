@@ -48,13 +48,16 @@ BOOSTER - Results {{.Id}}
       <li>Ended on: {{.End}}</li>
       <li>Total time elapsed: {{ .RunTime }}</li>
       <li>Workflow: {{ .WorkflowStr }}</li>
+      {{if (or (eq .Workflow 8) (eq .Workflow 9)) }}
+      <li>#Bootstrap trees to build: {{ .NbootRep }}</li>
+      {{ end }}
       {{/* <li>#Bootstrap trees: {{.Nboot}}</li> */}}
       <li>Output message: {{.Message}}</li>
     </ul>
   </div>
 </div>
 
-{{if (or (eq .Status 2) (eq .Status 5)) }}
+{{if (eq .Status 2) }}
 <div class="panel panel-default">
   <div class="panel-heading">Downloads</div>
   <div class="panel-body">

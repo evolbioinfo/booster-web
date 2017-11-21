@@ -217,7 +217,7 @@ func initProcessor(cfg config.Provider) {
 		}
 		galproc := &processor.GalaxyProcessor{}
 		galaxyprocessor = true
-		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, db, emailNotifier, queuesize)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, db, emailNotifier, queuesize, timeout)
 		proc = galproc
 	case "local", "":
 		// Local or not set

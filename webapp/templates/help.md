@@ -41,7 +41,7 @@ Clicking on the "run" button will launch one of the analysis, and take you to th
 
 1. The analysis will be first pending, waiting for available resources;
 2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
-3. After 1 hour, the analysis is "timedout". If you want to analyze a large number of large bootstrap trees, we advise to do it through [command-line](#commandline);
+3. After 5 days, the analysis is "timedout". If you want to analyze a large number of large bootstrap trees, we advise to do it through [command-line](#commandline);
 4. Once the analysis done, result page shows the following panels:
         1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
     2. Links to download results:

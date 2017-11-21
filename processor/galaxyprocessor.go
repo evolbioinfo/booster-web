@@ -49,6 +49,7 @@ type GalaxyProcessor struct {
 	db          database.BoosterwebDB      // Connection to database to save results
 	notifier    notification.Notifier      // For email notifications
 	lock        sync.RWMutex               // Lock to modify running jobs
+	timeout     int                        // Timeout in seconds: jobs are timedout after this time
 }
 
 // It will add the Analysis to the Queue and store it in the database
@@ -72,7 +73,7 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 }
 
 // Initializes the Galaxy Processor
-func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize int) {
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout int) {
 	p.notifier = notifier
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
@@ -80,6 +81,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	p.boosterid = boosterid
 	p.phymlid = phymlid
 	p.fasttreeid = fasttreeid
+	p.timeout = timeout
 
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
@@ -238,6 +240,14 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			return
 		}
 		time.Sleep(10 * time.Second)
+		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
+			err = errors.New("Job timedout")
+			a.Status = model.STATUS_TIMEOUT
+			a.Message = "Time out: Job canceled"
+			log.Print("Job timedout")
+			p.db.UpdateAnalysis(a)
+			return
+		}
 	}
 }
 
@@ -335,6 +345,15 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			return
 		}
 		time.Sleep(10 * time.Second)
+		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
+			p.galaxy.DeleteWorkflowRun(wfinvocation)
+			err = errors.New("Job timedout")
+			a.Status = model.STATUS_TIMEOUT
+			a.Message = "Time out: Job canceled"
+			log.Print("Job timedout")
+			p.db.UpdateAnalysis(a)
+			return
+		}
 	}
 }
 
@@ -433,6 +452,15 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 			return
 		}
 		time.Sleep(10 * time.Second)
+		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
+			p.galaxy.DeleteWorkflowRun(wfinvocation)
+			err = errors.New("Job timedout")
+			a.Status = model.STATUS_TIMEOUT
+			a.Message = "Time out: Job canceled"
+			log.Print("Job timedout")
+			p.db.UpdateAnalysis(a)
+			return
+		}
 	}
 }
 
@@ -510,7 +538,10 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			return
 		}
 		// Now we submit the booster tool
-		fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, history.Id, reffileid, bootfileid)
+		if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, history.Id, reffileid, bootfileid); err != nil {
+			log.Print("Error while launching Booster galaxy tool : " + err.Error())
+			return
+		}
 	} else {
 		log.Print("No Reference tree or Bootstrap tree given")
 		err = errors.New("No Reference tree or Bootstrap tree given")

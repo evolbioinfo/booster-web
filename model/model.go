@@ -191,3 +191,37 @@ func (a *Analysis) RunTime() string {
 	delta = end.Sub(start).Round(time.Second)
 	return delta.String()
 }
+
+// Returns the run time of the analysis from the start pending time
+// If end date is not filled yet, takes now(). If some dates have
+// format issues: returns "?"
+func (a *Analysis) RunTimeDuration() (delta time.Duration, err error) {
+	var start, end time.Time
+
+	if start, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
+		return
+	}
+
+	if a.End == "" {
+		end = time.Now()
+	} else {
+		if end, err = time.Parse(time.RFC1123, a.End); err != nil {
+			return
+		}
+	}
+
+	delta = end.Sub(start).Round(time.Second)
+	return
+}
+
+func (a *Analysis) TimedOut(timeout time.Duration) (timedout bool, err error) {
+	timedout = true
+	var start, end time.Time
+	if start, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
+		return
+	}
+	end = time.Now()
+
+	timedout = end.After(start.Add(timeout))
+	return
+}
