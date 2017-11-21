@@ -105,28 +105,21 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	log.Print(fmt.Sprintf("Booster galaxy tool id: %s", p.boosterid))
 
 	// Searches the PhyML-SMS workflow with given id (checks that it exists)
-	if wfids, err2 := p.galaxy.SearchWorkflowIDs(phymlid); err2 != nil {
+	if phymlwf, err2 := p.galaxy.GetWorkflowByID(phymlid, true); err2 != nil {
 		log.Fatal(err2)
 	} else {
-		if len(wfids) == 0 {
-			log.Fatal("No PhyML workflow corresponds to the id: " + phymlid)
-		} else {
-			p.phymlid = wfids[len(wfids)-1]
-		}
+		p.phymlid = phymlwf.Id
 	}
-	log.Print(fmt.Sprintf("PhyML-SMS oneclick galaxy tool id: %s", p.phymlid))
+
+	log.Print(fmt.Sprintf("PhyML-SMS oneclick galaxy shared workflow id: %s", p.phymlid))
 
 	// Searches the FastTree workflow with given id (checks that it exists)
-	if wfids2, err3 := p.galaxy.SearchWorkflowIDs(fasttreeid); err3 != nil {
+	if fasttreewf, err3 := p.galaxy.GetWorkflowByID(fasttreeid, true); err3 != nil {
 		log.Fatal(err3)
 	} else {
-		if len(wfids2) == 0 {
-			log.Fatal("No FastTree workflow corresponds to the id: " + fasttreeid)
-		} else {
-			p.fasttreeid = wfids2[len(wfids2)-1]
-		}
+		p.fasttreeid = fasttreewf.Id
 	}
-	log.Print(fmt.Sprintf("FastTree oneclick galaxy tool id: %s", p.fasttreeid))
+	log.Print(fmt.Sprintf("FastTree oneclick galaxy shared workflow id: %s", p.fasttreeid))
 
 	p.queue = make(chan *model.Analysis, queuesize)
 
@@ -252,9 +245,18 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
+	var phymlwf golaxy.WorkflowInfo
+
+	// We import the workflow
+	phymlwf, err = p.galaxy.ImportSharedWorkflow(p.phymlid)
+	defer p.galaxy.DeleteWorkflow(phymlwf.Id)
+	if err != nil {
+		log.Print("Error while importing PhyML-SMS oneclick workflow: " + err.Error())
+		return
+	}
 
 	// Initializes a launcher
-	l := p.galaxy.NewWorkflowLauncher(historyid, p.phymlid)
+	l := p.galaxy.NewWorkflowLauncher(historyid, phymlwf.Id)
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
@@ -339,9 +341,18 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
+	var fasttreewf golaxy.WorkflowInfo
+
+	// We import the workflow
+	fasttreewf, err = p.galaxy.ImportSharedWorkflow(p.fasttreeid)
+	defer p.galaxy.DeleteWorkflow(fasttreewf.Id)
+	if err != nil {
+		log.Print("Error while importing FastTree oneclick workflow: " + err.Error())
+		return
+	}
 
 	// Initializes FastTree launcher
-	l := p.galaxy.NewWorkflowLauncher(historyid, p.fasttreeid)
+	l := p.galaxy.NewWorkflowLauncher(historyid, fasttreewf.Id)
 	l.AddFileInput("0", alignfileid, "hda")
 	l.AddParameter(5, "support_condition|support", "boot")
 	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
@@ -431,14 +442,18 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	var bootfileid string
 	var seqid string
 	var alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
-
 	var history golaxy.HistoryFullInfo
+
 	// We create an history
 	history, err = p.galaxy.CreateHistory("Booster History")
+	// And we delete the history
+	defer p.galaxy.DeleteHistory(history.Id)
 	if err != nil {
 		log.Print("Error while Creating History: " + err.Error())
 		return
 	}
+
+	log.Print("History: " + history.Id)
 
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
@@ -529,11 +544,6 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 
 	a.Status = model.STATUS_FINISHED
 	p.db.UpdateAnalysis(a)
-
-	// And we delete the history
-	if _, err = p.galaxy.DeleteHistory(history.Id); err != nil {
-		log.Print("Error while deleting history: " + err.Error())
-	}
 
 	return
 }
