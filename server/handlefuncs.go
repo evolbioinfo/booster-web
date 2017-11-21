@@ -275,8 +275,9 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
 	json.NewEncoder(w).Encode(a)
 }
 
-func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64, layout, format string) {
+func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64, layout, algorithm, format string) {
 	var a *model.Analysis
+
 	a, err := getAnalysis(id)
 	if err != nil {
 		a = model.NewAnalysis()
@@ -299,7 +300,12 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 		return
 	}
 
-	t, err := newick.NewParser(strings.NewReader(a.TbeNormTree)).Parse()
+	todraw := a.TbeNormTree
+	if algorithm == "fbp" {
+		todraw = a.FbpTree
+	}
+
+	t, err := newick.NewParser(strings.NewReader(todraw)).Parse()
 	if err != nil {
 		io.LogError(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -393,9 +399,9 @@ func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Ha
 
 // URL of the form:
 // /api/image/analysisid/bootstrapcutoff/treelayout/imageformat
-var validApiImagePath = regexp.MustCompile("^/api/image/([-a-zA-Z0-9]+)/([0-9]+)/(circular|radial|normal)/(svg|png)$")
+var validApiImagePath = regexp.MustCompile("^/api/image/([-a-zA-Z0-9]+)/([0-9]+)/(circular|radial|normal)/(fbp|tbe)/(svg|png)$")
 
-func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, float64, string, string)) http.HandlerFunc {
+func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, float64, string, string, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validApiImagePath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
@@ -403,7 +409,7 @@ func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, flo
 			return
 		}
 		f, _ := strconv.ParseFloat(m[2], 64)
-		fn(w, r, m[1], f, m[3], m[4])
+		fn(w, r, m[1], f, m[3], m[4], m[5])
 	}
 }
 

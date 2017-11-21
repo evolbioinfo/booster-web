@@ -1,6 +1,7 @@
 var newick="";
 var tree;
 var layout="radial";
+var algorithm="tbe";
 var collapse=80;
 
 $( document ).ready(function() {
@@ -13,7 +14,7 @@ $( document ).ready(function() {
     //						 zIndex: 1,
     //					     }});
     //});
-    updateTreeCanvas(80)
+    updateTreeCanvas();
 
     $( "#slider" ).slider({
 	min:0,
@@ -31,7 +32,13 @@ $( document ).ready(function() {
 
     $ ("#layout").change(function(){
 	$( "#layout option:selected" ).each(function() {
-	    layout=$(this).text();
+	    layout=$(this).val();
+	});
+	updateTreeCanvas();
+    });
+    $ ("#algorithm").change(function(){
+	$( "#algorithm option:selected" ).each(function() {
+	    algorithm=$(this).val();
 	});
 	updateTreeCanvas();
     });
@@ -43,7 +50,7 @@ function updateTreeCanvas(){
 	var id = $(this).data("id");
 	var elt = $(this);
 	$.ajax({
-	    url: "/api/image/"+id+"/"+collapse+"/"+layout+"/svg",
+	    url: "/api/image/"+id+"/"+collapse+"/"+layout+"/"+algorithm+"/svg",
 	    dataType: 'text',
 	    async: true,
 	    success: function(data) {
