@@ -9,22 +9,21 @@ Two kinds of jobs may be submited to BOOSTER-WEB:
 
 ### Whole phylogenetic analysis
 
-If you do not have reference and bootstrap trees already computed, you may just submit a FASTA file to the [run](/new) input form (may be gzipped), in the "input sequence" field.
+If you do not have reference and bootstrap trees already computed, you may just submit an alignment file to the [run](/new) input form (may be gzipped), in the "input sequence" field. 
+The alignment file may be in Fasta, Phylip or Nexus format.
 
 In that case, you may choose between two workflows to run:
-1. PhyML-SMS oneclick and
-2. FastTree+Bootstrap oneclick
+1. PhyML-SMS;
+2. FastTree.
 
-These two workflows are defined in [ngphylogeny.fr](https://ngphylogeny.fr/workflows/oneclick/), and are launched on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server. 
+	These two workflows are installed and launche on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server. 
 
 They constist of the following steps:
 
-1. Multiple alignment with [MAFFT](https://mafft.cbrc.jp/alignment/server/);
-2. Alignment curation using [Noisy](http://www.bioinf.uni-leipzig.de/Software/noisy/);
-3. Tree inference, two possibilities:
+1. Tree inference, two possibilities:
     a. Model selection + tree inference using [Phyml-SMS](http://www.atgc-montpellier.fr/phyml-sms/) or
-	b. Reference + Boottrap Tree reconstructions using [FastTree](http://www.microbesonline.org/fasttree/); 
-4. Bootstrap support computation using [booster](https://github.com/evolbioinfo/booster/).
+	b. Reference + Bootstrap Tree reconstructions using [FastTree](http://www.microbesonline.org/fasttree/)
+2. Bootstrap support computation using [booster](https://github.com/evolbioinfo/booster/).
 
 ### Bootrap support computation
 
@@ -35,9 +34,9 @@ You may also directly submit BOOSTER jobs on the [run](/new) page. In that case,
 
 ### Workflow
 
-Please note that if a FASTA sequence file is provided, no tree file will be taken into account.
+Please note that if an alignment  file (Fasta, Phylip or Nexus) is provided, no tree file will be taken into account.
 
-Clicking on the "run" button will launch one of the analysis, and take you to the result page, with the following steps:
+Clicking the "run" button will launch one of the analyses, and will take you to the result page, with the following steps:
 
 1. The analysis will be first pending, waiting for available resources;
 2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
