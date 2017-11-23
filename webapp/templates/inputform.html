@@ -38,7 +38,7 @@ BOOSTER - Run
       <label for="refalign">Input Sequences</label>
       <input type="file" class="form-control-file" id="refalign" aria-describedby="refAlignHelp" name="refalign" />
       <small id="refAlignHelp" class="form-text text-muted">Input sequence alignment (Fasta/Phylip/Nexus format, possibly gzipped with extension .gz only).
-	If given, one of the <a href="https://ngphylogeny.fr/workflows/oneclick/">NGPhylogeny.fr oneclick</a> workflows will be executed to build reference and bootstrap trees,
+	If given, one of the <a href="https://galaxy.pasteur.fr/">Galaxy</a> workflows will be executed to build reference and bootstrap trees,
 	and no tree file given below will be taken into account.</small>
     </div>
     <div>
@@ -60,10 +60,10 @@ BOOSTER - Run
     <div>
       <label for="workflow">Workflow to run</label>
       <select id="workflow" name="workflow" class="form-control" aria-describedby="workflowHelp">
-	<option value="PhyML-SMS" selected>NGPhylogeny.fr PhyML-SMS oneclick (slower, for small/medium datasets)</option>
-	<option value="FastTree">NGPhylogeny.fr FastTree oneclick (faster, for large datasets)</option>
+	<option value="PhyML-SMS" selected>PhyML-SMS (slower, for small/medium datasets)</option>
+	<option value="FastTree">FastTree (faster, for large datasets)</option>
       </select>
-      <small id="workflowHelp" class="form-text text-muted">Choose the phylogenetic workflow to run: 1) PhyML-SMS or 2) FastTree. These are the "oneclick" workflows defined in <a href="https://ngphylogeny.fr/workflows/oneclick/">ngphylogeny.fr</a>.</small>
+      <small id="workflowHelp" class="form-text text-muted">Choose the phylogenetic workflow to run: 1) PhyML-SMS or 2) FastTree. These workflows are installed and launched on the Instut Pasteur <a href="https://galaxy.pasteur.fr/">Galaxy</a> server.</small>
     </div>
   </fieldset>
   {{ end }}

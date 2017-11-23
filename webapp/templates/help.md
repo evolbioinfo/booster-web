@@ -16,7 +16,7 @@ In that case, you may choose between two workflows to run:
 1. PhyML-SMS;
 2. FastTree.
 
-	These two workflows are installed and launche on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server. 
+	These two workflows are installed and launched on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server. 
 
 They constist of the following steps:
 
