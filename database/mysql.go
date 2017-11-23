@@ -44,24 +44,25 @@ type MySQLBoosterwebDB struct {
 }
 
 type dbanalysis struct {
-	id           string `mysql-type:"varchar(100)" mysql-other:"NOT NULL PRIMARY KEY"` // Id of the analysis
-	email        string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Email of the analysis creator
-	seqfile      string `mysql-type:"blob"`                                            // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
-	nbootrep     int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
-	alignfile    string `mysql-type:"blob"`                                            // alignment input file (if user wants to build the trees)
-	workflow     int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
-	reffile      string `mysql-type:"blob"`                                            // reference tree file
-	bootfile     string `mysql-type:"blob"`                                            // boot tree file
-	fbptree      string `mysql-type:"longtext"`                                        // tree with fbp supports
-	tbenormtree  string `mysql-type:"longtext"`                                        // tree with normalized tbe supports
-	tberawtree   string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
-	tbelogs      string `mysql-type:"longtext"`                                        // tbe log file
-	status       int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
-	message      string `mysql-type:"longtext"`                                        // Optional message
-	nboot        int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
-	startpending string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
-	startrunning string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being running
-	end          string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job finished
+	id            string `mysql-type:"varchar(100)" mysql-other:"NOT NULL PRIMARY KEY"` // Id of the analysis
+	email         string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Email of the analysis creator
+	seqalign      string `mysql-type:"blob"`                                            // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	nbootrep      int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
+	alignfile     string `mysql-type:"blob"`                                            // alignment input file (if user wants to build the trees)
+	alignalphabet int    `mysql-type:"int"`                                             // alignment alphabet 0: aa | 1: nt
+	workflow      int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
+	reffile       string `mysql-type:"blob"`                                            // reference tree file
+	bootfile      string `mysql-type:"blob"`                                            // boot tree file
+	fbptree       string `mysql-type:"longtext"`                                        // tree with fbp supports
+	tbenormtree   string `mysql-type:"longtext"`                                        // tree with normalized tbe supports
+	tberawtree    string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
+	tbelogs       string `mysql-type:"longtext"`                                        // tbe log file
+	status        int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
+	message       string `mysql-type:"longtext"`                                        // Optional message
+	nboot         int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
+	startpending  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
+	startrunning  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being running
+	end           string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job finished
 }
 
 /* Returns a new database */
@@ -100,7 +101,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT id,email,seqfile,nbootrep,alignfile,workflow,reffile,bootfile,fbptree,tbenormtree,tberawtree,tbelogs,status,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
+	rows, err := db.db.Query("SELECT id,email,seqalign,nbootrep,alignfile,alignalphabet,workflow,reffile,bootfile,fbptree,tbenormtree,tberawtree,tbelogs,status,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +109,8 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 
 	dban := dbanalysis{}
 	if rows.Next() {
-		if err := rows.Scan(&dban.id, &dban.email, &dban.seqfile, &dban.nbootrep,
-			&dban.alignfile, &dban.workflow, &dban.reffile, &dban.bootfile,
+		if err := rows.Scan(&dban.id, &dban.email, &dban.seqalign, &dban.nbootrep,
+			&dban.alignfile, &dban.alignalphabet, &dban.workflow, &dban.reffile, &dban.bootfile,
 			&dban.fbptree, &dban.tbenormtree, &dban.tberawtree, &dban.tbelogs, &dban.status,
 			&dban.message, &dban.nboot, &dban.startpending, &dban.startrunning, &dban.end); err != nil {
 			return nil, err
@@ -123,24 +124,25 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	}
 
 	a := &model.Analysis{
-		Id:           dban.id,
-		EMail:        dban.email,
-		SeqFile:      dban.seqfile,
-		NbootRep:     dban.nbootrep,
-		Alignfile:    dban.alignfile,
-		Workflow:     dban.workflow,
-		Reffile:      dban.reffile,
-		Bootfile:     dban.bootfile,
-		FbpTree:      dban.fbptree,
-		TbeNormTree:  dban.tbenormtree,
-		TbeRawTree:   dban.tberawtree,
-		TbeLogs:      dban.tbelogs,
-		Status:       dban.status,
-		Message:      dban.message,
-		Nboot:        dban.nboot,
-		StartPending: dban.startpending,
-		StartRunning: dban.startrunning,
-		End:          dban.end,
+		Id:            dban.id,
+		EMail:         dban.email,
+		SeqAlign:      dban.seqalign,
+		NbootRep:      dban.nbootrep,
+		Alignfile:     dban.alignfile,
+		AlignAlphabet: dban.alignalphabet,
+		Workflow:      dban.workflow,
+		Reffile:       dban.reffile,
+		Bootfile:      dban.bootfile,
+		FbpTree:       dban.fbptree,
+		TbeNormTree:   dban.tbenormtree,
+		TbeRawTree:    dban.tberawtree,
+		TbeLogs:       dban.tbelogs,
+		Status:        dban.status,
+		Message:       dban.message,
+		Nboot:         dban.nboot,
+		StartPending:  dban.startpending,
+		StartRunning:  dban.startrunning,
+		End:           dban.end,
 	}
 
 	return a, nil
@@ -154,18 +156,20 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		return errors.New("Database not opened")
 	}
 	query := `INSERT INTO analysis 
-                    (id, email, seqfile, nbootrep, alignfile, workflow, reffile, bootfile, fbptree,tbenormtree, tberawtree, tbelogs, status, message, nboot, startpending, startrunning , end) 
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
-                  ON DUPLICATE KEY UPDATE alignfile=values(alignfile), fbptree=values(fbptree), tbenormtree=values(tbenormtree), tberawtree=values(tberawtree), tbelogs=values(tbelogs), 
-                                          status=values(status),workflow=values(workflow), message=values(message), 
-                                          nboot=values(nboot),startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
+                    (id, email, seqalign, nbootrep, alignfile, alignalphabet,workflow, reffile, bootfile, fbptree,tbenormtree, tberawtree, tbelogs, status, message, nboot, startpending, startrunning , end) 
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
+                  ON DUPLICATE KEY UPDATE alignfile=values(alignfile),alignalphabet=values(alignalphabet),fbptree=values(fbptree), 
+                                          tbenormtree=values(tbenormtree), tberawtree=values(tberawtree), tbelogs=values(tbelogs), 
+                                          status=values(status),workflow=values(workflow), message=values(message), nboot=values(nboot),
+                                          startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
 	_, err := db.db.Exec(
 		query,
 		a.Id,
 		a.EMail,
-		a.SeqFile,
+		a.SeqAlign,
 		a.NbootRep,
 		a.Alignfile,
+		a.AlignAlphabet,
 		a.Workflow,
 		a.Reffile,
 		a.Bootfile,

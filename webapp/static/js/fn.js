@@ -5,14 +5,16 @@ function updateNbootInput(val) {
 $( document ).ready(function() {
     // When sequence file is selected,
     // Tree files are cleared
-    $("#refseqs").change(function (){
+    $("#refalign").change(function (){
 	$("#reftree").val('');
 	$("#boottrees").val('');
     });
     $("#reftree").change(function (){
-	$("#refseqs").val('');
+	$("#refalign").val('');
     });
     $("#boottrees").change(function (){
-	$("#refseqs").val('');
+	$("#refalign").val('');
     });
+    
+    $("#nboottext").html($("#nboot").val());
 });

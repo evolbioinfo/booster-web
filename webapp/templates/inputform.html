@@ -35,15 +35,26 @@ BOOSTER - Run
   <fieldset class="form-group">
     <legend class="fieldset-border">You have input sequences (fasta format)</legend>
     <div>
-      <label for="refseqs">Input Sequences</label>
-      <input type="file" class="form-control-file" id="refseqs" aria-describedby="refSeqsHelp" name="refseqs" />
-      <small id="refSeqsHelp" class="form-text text-muted">Input sequences (Fasta format, possibly gzipped with extension .gz only).
+      <label for="refalign">Input Sequences</label>
+      <input type="file" class="form-control-file" id="refalign" aria-describedby="refAlignHelp" name="refalign" />
+      <small id="refAlignHelp" class="form-text text-muted">Input sequence alignment (Fasta/Phylip/Nexus format, possibly gzipped with extension .gz only).
 	If given, one of the <a href="https://ngphylogeny.fr/workflows/oneclick/">NGPhylogeny.fr oneclick</a> workflows will be executed to build reference and bootstrap trees,
 	and no tree file given below will be taken into account.</small>
     </div>
     <div>
-      <label for="nboot">Number of Bootstrap replicates (<span id="nboottext">40</span>)</label>
-      <input style="max-width:500px;" type="range" value="40" min="2" max="1000" id="nboot"  name="nboot"  oninput="updateNbootInput(this.value);"/>
+      <label for="nboot">Number of Bootstrap replicates (<span id="nboottext"></span>)</label>
+      <select id="nboot" name="nboot" class="form-control" aria-describedby="nbootHelp" onchange="updateNbootInput(this.value);">
+	<option value="100">100</option>
+	<option value="200" selected>200</option>
+	<option value="300">300</option>
+	<option value="400">400</option>
+	<option value="500">500</option>
+	<option value="600">600</option>
+	<option value="700">700</option>
+	<option value="800">800</option>
+	<option value="900">900</option>
+	<option value="1000">1000</option>
+      </select>
       <small id="nbootHelp" class="form-text text-muted">Number of Bootstrap replicates</small>
     </div>
     <div>

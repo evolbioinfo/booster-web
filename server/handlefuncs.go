@@ -194,8 +194,8 @@ func newHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runHandler(w http.ResponseWriter, r *http.Request) {
-	var refseqs multipart.File
-	var refseqshandler *multipart.FileHeader
+	var refalign multipart.File
+	var refalignhandler *multipart.FileHeader
 	var reftree multipart.File
 	var refhandler *multipart.FileHeader
 	var boottree multipart.File
@@ -214,7 +214,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if refseqs, refseqshandler, err = r.FormFile("refseqs"); err != nil {
+	if refalign, refalignhandler, err = r.FormFile("refalign"); err != nil {
 		err = errors.New("No Sequence file given: " + err.Error())
 		io.LogInfo(err.Error())
 
@@ -250,7 +250,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		nbootint = 1000
 	}
 
-	if a, err = newAnalysis(refseqs, refseqshandler, reftree, refhandler, boottree, boothandler, email, int(nbootint), workflow); err != nil {
+	if a, err = newAnalysis(refalign, refalignhandler, reftree, refhandler, boottree, boothandler, email, int(nbootint), workflow); err != nil {
 		err = errors.New("Error while creating a new analysis: " + err.Error())
 		io.LogError(err)
 		errorHandler(w, r, err)

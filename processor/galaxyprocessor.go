@@ -252,7 +252,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 }
 
 // rawtreeid may be "" if support is classical/FBP
-func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
+func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
 	var phymlwf golaxy.WorkflowInfo
@@ -284,28 +284,23 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 		}
 		switch wfstate.Status() {
 		case "ok":
-			if alignmentid, err = wfstate.StepOutputFileId(1, "outputAlignment"); err != nil {
-				log.Print("Error while getting alignment file from PHYML-SMS oneclick workflow: " + err.Error())
-				return
-			}
-
 			if fbptreeid, err = wfstate.StepOutputFileId(5, "output_tree"); err != nil {
-				log.Print("Error while getting support tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				log.Print("Error while getting support tree output file id of PHYML-SMS workflow: " + err.Error())
 				return
 			}
 
 			if tbenormtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
-				log.Print("Error while getting raw distance tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				log.Print("Error while getting raw distance tree output file id of PHYML-SMS workflow: " + err.Error())
 				return
 			}
 
 			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_raw_tree"); err != nil {
-				log.Print("Error while getting support tree output file id of PHYML-SMS oneclick workflow: " + err.Error())
+				log.Print("Error while getting support tree output file id of PHYML-SMS workflow: " + err.Error())
 				return
 			}
 
 			if tbelogid, err = wfstate.StepOutputFileId(5, "tbe_log"); err != nil {
-				log.Print("Error while getting booster log file from PHYML-SMS oneclick workflow: " + err.Error())
+				log.Print("Error while getting booster log file from PHYML-SMS workflow: " + err.Error())
 				return
 			}
 			a.End = time.Now().Format(time.RFC1123)
@@ -357,7 +352,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	}
 }
 
-func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (alignmentid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
+func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var wfinvocation *golaxy.WorkflowInvocation
 	var wfstate *golaxy.WorkflowStatus
 	var fasttreewf golaxy.WorkflowInfo
@@ -389,11 +384,6 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 		}
 		switch wfstate.Status() {
 		case "ok":
-			if alignmentid, err = wfstate.StepOutputFileId(1, "outputAlignment"); err != nil {
-				log.Print("Error while getting alignment file from FastTree oneclick workflow: " + err.Error())
-				return
-			}
-
 			if fbptreeid, err = wfstate.StepOutputFileId(4, "output_tree"); err != nil {
 				log.Print("Error while getting fbp support tree output file id of FastTree oneclick workflow: " + err.Error())
 				return
@@ -469,7 +459,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	var reffileid string
 	var bootfileid string
 	var seqid string
-	var alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
+	var fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
 	var history golaxy.HistoryFullInfo
 
 	// We create an history
@@ -480,48 +470,37 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		log.Print("Error while Creating History: " + err.Error())
 		return
 	}
-
 	log.Print("History: " + history.Id)
 
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
-	if a.SeqFile != "" {
+	if a.SeqAlign != "" {
 		if a.Workflow == model.WORKFLOW_NIL {
 			err = errors.New("Phylogenetic workflow to launch is not defined")
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
 		// We upload ref sequence file to history
-		seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqFile, "fasta")
+		seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta")
 		if err != nil {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
-
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, history.Id, seqid); err != nil {
-				log.Print("Error while launching PhyML-SMS oneclick workflow : " + err.Error())
+			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, history.Id, seqid); err != nil {
+				log.Print("Error while launching PhyML-SMS workflow : " + err.Error())
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if alignid, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, history.Id, seqid); err != nil {
-				log.Print("Error while launching FastTree oneclick workflow : " + err.Error())
+			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, history.Id, seqid); err != nil {
+				log.Print("Error while launching FastTree workflow : " + err.Error())
 				return
 			}
 		} else {
-			err = errors.New("Error while launching oneclick workflow, unkown workflow")
+			err = errors.New("Error while launching workflow, unkown workflow")
 			log.Print(err.Error())
 			return
-
 		}
-
-		// And we download alignment file
-		if outcontent, err = p.galaxy.DownloadFile(history.Id, alignid); err != nil {
-			log.Print("Error while downloading alignment file: " + err.Error())
-			return
-		}
-		a.Alignfile = string(outcontent)
-
 	} else if a.Reffile != "" && a.Bootfile != "" {
 		// Otherwise we upload the given ref and boot files
 		// We upload ref tree to history

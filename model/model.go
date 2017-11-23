@@ -50,10 +50,11 @@ type Analysis struct {
 	Id    string `json:"id"` // sha256 sum of reftree and boottree files
 	EMail string `json:"-"`  // EMail of the job creator, may be empty string ""
 	// Four next attributes are for users who want to build the trees using PhyML-SMS of galaxy
-	SeqFile   string `json:"-"`        // Input Fasta Sequence File if user wants to build the ref/boot trees (priority over reffile and bootfile)
-	NbootRep  int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
-	Alignfile string `json:"align"`    // Alignment result file returned by galaxy workflow if users gave a input sequence file
-	Workflow  int    `json:"workflow"` // The galaxy workflow that has been run. 8:PHYML-SMS, 9: FASTTREE
+	SeqAlign      string `json:"-"`        // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	NbootRep      int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
+	Alignfile     string `json:"align"`    // Alignment result file returned by galaxy workflow if users gave a input sequence file
+	AlignAlphabet int    `json:"alphabet"` // Alignment alphabet: 0: aa | 1 : nt
+	Workflow      int    `json:"workflow"` // The galaxy workflow that has been run. 8:PHYML-SMS, 9: FASTTREE
 
 	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
 	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
@@ -73,7 +74,7 @@ func NewAnalysis() (a *Analysis) {
 	a = &Analysis{
 		Id:           "none",
 		EMail:        "",
-		SeqFile:      "",
+		SeqAlign:     "",
 		NbootRep:     0,
 		Alignfile:    "",
 		Workflow:     WORKFLOW_NIL,
@@ -142,11 +143,11 @@ func WorkflowConst(workflow string) (w int, err error) {
 
 func (a *Analysis) DelTemp() {
 	var dir string
-	if a.SeqFile != "" {
-		if err := os.Remove(a.SeqFile); err != nil {
+	if a.SeqAlign != "" {
+		if err := os.Remove(a.SeqAlign); err != nil {
 			log.Print(err)
 		}
-		dir = filepath.Dir(a.SeqFile)
+		dir = filepath.Dir(a.SeqAlign)
 	}
 	if a.Reffile != "" {
 		if err := os.Remove(a.Reffile); err != nil {

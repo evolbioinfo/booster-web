@@ -24,8 +24,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 package server
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"github.com/nu7hatch/gouuid"
+	"github.com/russross/blackfriday"
 	"html/template"
 	goio "io"
 	"io/ioutil"
@@ -45,8 +48,9 @@ import (
 	"github.com/fredericlemoine/booster-web/processor"
 	"github.com/fredericlemoine/booster-web/static"
 	"github.com/fredericlemoine/booster-web/templates"
-	"github.com/nu7hatch/gouuid"
-	"github.com/russross/blackfriday"
+	"github.com/fredericlemoine/goalign/align"
+	"github.com/fredericlemoine/goalign/io/fasta"
+	"github.com/fredericlemoine/goalign/io/utils"
 )
 
 const (
@@ -345,14 +349,14 @@ func initEmailNotification(cfg config.Provider) {
 // Creates a new analysis
 //
 // workflow is sed only if sefseqs is defined : full phylogenetic workflow
-func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
+func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 	reffile multipart.File, refheader *multipart.FileHeader,
 	bootfile multipart.File, bootheader *multipart.FileHeader,
 	email string, nbootrep int, workflow string) (a *model.Analysis, err error) {
 
 	var uuid string
 	var dir string
-	var seqfile, treefile, boottreefile string
+	var seqalignfile, treefile, boottreefile string
 
 	uuid = <-uuids
 
@@ -371,11 +375,27 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 	}
 
 	// Reference sequences if given
-	if refseqsheader != nil {
-		if seqfile, err = copyFile(dir, refseqs, refseqsheader); err != nil {
+	if refalignheader != nil {
+		// We parse it while detecting automaticall the format
+		var r *bufio.Reader
+		var al align.Alignment
+
+		if r, err = utils.GetReaderFromReader(utils.GzipExtension(refalignheader.Filename), refalign); err != nil {
 			log.Print(err)
 			return
 		}
+
+		if al, _, err = utils.ParseAlignmentAuto(r, false); err != nil {
+			log.Print(err)
+			return
+		}
+
+		if seqalignfile, err = writeAlignFasta(al, dir, refalignheader); err != nil {
+			log.Print(err)
+			return
+		}
+		a.Alignfile = fasta.WriteAlignment(al)
+		a.AlignAlphabet = al.Alphabet()
 
 		// Given workflow to launch does not exist
 		if a.Workflow, err = model.WorkflowConst(workflow); err != nil {
@@ -397,7 +417,7 @@ func newAnalysis(refseqs multipart.File, refseqsheader *multipart.FileHeader,
 		}
 	}
 
-	a.SeqFile = seqfile
+	a.SeqAlign = seqalignfile
 	a.Reffile = treefile
 	a.Bootfile = boottreefile
 	err = proc.LaunchAnalysis(a)
@@ -423,6 +443,23 @@ func copyFile(tmpdir string, infile multipart.File, infileheader *multipart.File
 			log.Print(err)
 		} else {
 			goio.Copy(f, infile)
+		}
+		defer f.Close()
+	} else {
+		err = errors.New("File to copy does not exist")
+		log.Print(err)
+	}
+	return
+}
+
+func writeAlignFasta(al align.Alignment, tmpdir string, infileheader *multipart.FileHeader) (fpath string, err error) {
+	var f *os.File
+	if infileheader != nil {
+		fpath = filepath.Join(tmpdir, infileheader.Filename)
+		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
+			log.Print(err)
+		} else {
+			f.WriteString(fasta.WriteAlignment(al))
 		}
 		defer f.Close()
 	} else {
