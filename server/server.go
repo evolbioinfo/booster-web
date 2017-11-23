@@ -50,6 +50,7 @@ import (
 	"github.com/fredericlemoine/booster-web/templates"
 	"github.com/fredericlemoine/goalign/align"
 	"github.com/fredericlemoine/goalign/io/fasta"
+	"github.com/fredericlemoine/goalign/io/phylip"
 	"github.com/fredericlemoine/goalign/io/utils"
 )
 
@@ -203,8 +204,8 @@ func initProcessor(cfg config.Provider) {
 	galaxyurl := cfg.GetString("galaxy.url")
 	proctype := cfg.GetString("runners.type")
 	boosterid := cfg.GetString("galaxy.tools.booster")
-	phymlid := cfg.GetString("galaxy.workflows.phyml")
-	fasttreeid := cfg.GetString("galaxy.workflows.fasttree")
+	phymlid := cfg.GetString("galaxy.tools.phyml")
+	fasttreeid := cfg.GetString("galaxy.tools.fasttree")
 
 	galaxyprocessor = false
 
@@ -390,10 +391,12 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 			return
 		}
 
-		if seqalignfile, err = writeAlignFasta(al, dir, refalignheader); err != nil {
+		// Write alignment in fasta or in phylip depending on the workflow to launch: phyml or fasttree
+		if seqalignfile, err = writeAlign(al, dir, refalignheader, workflow); err != nil {
 			log.Print(err)
 			return
 		}
+
 		a.Alignfile = fasta.WriteAlignment(al)
 		a.AlignAlphabet = al.Alphabet()
 
@@ -452,14 +455,24 @@ func copyFile(tmpdir string, infile multipart.File, infileheader *multipart.File
 	return
 }
 
-func writeAlignFasta(al align.Alignment, tmpdir string, infileheader *multipart.FileHeader) (fpath string, err error) {
+// Write alignment in fasta or in phylip depending on the workflow to launch: phyml or fasttree
+func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileHeader, workflow string) (fpath string, err error) {
 	var f *os.File
+	var wf int
+	if wf, err = model.WorkflowConst(workflow); err != nil {
+		log.Print(err)
+		return
+	}
 	if infileheader != nil {
 		fpath = filepath.Join(tmpdir, infileheader.Filename)
 		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
 			log.Print(err)
 		} else {
-			f.WriteString(fasta.WriteAlignment(al))
+			if wf == model.WORKFLOW_PHYML_SMS {
+				f.WriteString(phylip.WriteAlignment(al, false))
+			} else {
+				f.WriteString(fasta.WriteAlignment(al))
+			}
 		}
 		defer f.Close()
 	} else {

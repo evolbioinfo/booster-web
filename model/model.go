@@ -44,6 +44,9 @@ const (
 	WORKFLOW_NIL       = -1
 	WORKFLOW_PHYML_SMS = 8
 	WORKFLOW_FASTTREE  = 9
+
+	ALIGN_AMINOACIDS = 0
+	ALIGN_NUCLEOTIDS = 1
 )
 
 type Analysis struct {

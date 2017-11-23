@@ -253,54 +253,71 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 
 // rawtreeid may be "" if support is classical/FBP
 func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
-	var wfinvocation *golaxy.WorkflowInvocation
-	var wfstate *golaxy.WorkflowStatus
-	var phymlwf golaxy.WorkflowInfo
+	var jobs []string
+	var state string
+	var files map[string]string
 
-	// We import the workflow
-	phymlwf, err = p.galaxy.ImportSharedWorkflow(p.phymlid)
-	defer p.galaxy.DeleteWorkflow(phymlwf.Id)
+	tl := p.galaxy.NewToolLauncher(historyid, p.phymlid)
+	tl.AddFileInput("input", alignfileid, "hda")
+
+	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
+		tl.AddParameter("seqtype", "aa")
+	} else if a.AlignAlphabet == model.ALIGN_NUCLEOTIDS {
+		tl.AddParameter("seqtype", "nt")
+	} else {
+		err = errors.New("Unkown sequence alphabet in alignment")
+		return
+	}
+	tl.AddParameter("stat_crit", "aic")
+	tl.AddParameter("move", "nni")
+	tl.AddParameter("support_condition|support", "boot")
+	tl.AddParameter("support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
+	tl.AddParameter("inpuTree|inputtree", "false")
+
+	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
-		log.Print("Error while importing PhyML-SMS oneclick workflow: " + err.Error())
+		log.Print("Error while launching booster: " + err.Error())
 		return
 	}
 
-	// Initializes a launcher
-	l := p.galaxy.NewWorkflowLauncher(historyid, phymlwf.Id)
-	l.AddFileInput("0", alignfileid, "hda")
-	l.AddParameter(5, "support_condition|support", "boot")
-	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-
-	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
-		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
+	if len(jobs) != 1 {
+		log.Print("Galaxy Error: No jobs in the list")
+		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
 
 	// Now waits for the end of the execution
 	for {
-		if wfstate, err = p.galaxy.CheckWorkflow(wfinvocation); err != nil {
+		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
 			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
 			return
 		}
-		switch wfstate.Status() {
+		switch state {
 		case "ok":
-			if fbptreeid, err = wfstate.StepOutputFileId(5, "output_tree"); err != nil {
-				log.Print("Error while getting support tree output file id of PHYML-SMS workflow: " + err.Error())
+			var ok bool
+			// fbp tree file
+			if fbptreeid, ok = files["output_tree"]; !ok {
+				err = errors.New("Error while getting support tree output file id of PHYML-SMS workflow")
+				log.Print(err.Error())
+				return
+			}
+			// tbe norm tree
+			if tbenormtreeid, ok = files["tbe_norm_tree"]; !ok {
+				err = errors.New("Error while getting raw distance tree output file id of PHYML-SMS workflow")
+				log.Print(err.Error())
+				return
+			}
+			// tbe raw tree
+			if tberawtreeid, ok = files["tbe_raw_tree"]; !ok {
+				err = errors.New("Error while getting raw distance tree output file id of PHYML-SMS workflow")
+				log.Print(err.Error())
 				return
 			}
 
-			if tbenormtreeid, err = wfstate.StepOutputFileId(5, "tbe_norm_tree"); err != nil {
-				log.Print("Error while getting raw distance tree output file id of PHYML-SMS workflow: " + err.Error())
-				return
-			}
-
-			if tberawtreeid, err = wfstate.StepOutputFileId(5, "tbe_raw_tree"); err != nil {
-				log.Print("Error while getting support tree output file id of PHYML-SMS workflow: " + err.Error())
-				return
-			}
-
-			if tbelogid, err = wfstate.StepOutputFileId(5, "tbe_log"); err != nil {
-				log.Print("Error while getting booster log file from PHYML-SMS workflow: " + err.Error())
+			// tbe logs
+			if tbelogid, ok = files["tbe_log"]; !ok {
+				err = errors.New("Error while getting tbe log file id PHYML-SMS workflow")
+				log.Print(err.Error())
 				return
 			}
 			a.End = time.Now().Format(time.RFC1123)
@@ -333,15 +350,14 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			a.Message = "New Job"
 			err = p.db.UpdateAnalysis(a)
 		default: // May be "unknown", "deleted", "error" or other...
-			err = errors.New("Job state : " + wfstate.Status())
+			err = errors.New("Job state : " + state)
 			a.Status = model.STATUS_ERROR
-			log.Print("Job in unknown state: " + wfstate.Status())
+			log.Print("Job in unknown state: " + state)
 			p.db.UpdateAnalysis(a)
 			return
 		}
 		time.Sleep(10 * time.Second)
 		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
-			p.galaxy.DeleteWorkflowRun(wfinvocation)
 			err = errors.New("Job timedout")
 			a.Status = model.STATUS_TIMEOUT
 			a.Message = "Time out: Job canceled"
@@ -353,54 +369,72 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 }
 
 func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
-	var wfinvocation *golaxy.WorkflowInvocation
-	var wfstate *golaxy.WorkflowStatus
-	var fasttreewf golaxy.WorkflowInfo
+	var jobs []string
+	var files map[string]string
+	var state string
 
-	// We import the workflow
-	fasttreewf, err = p.galaxy.ImportSharedWorkflow(p.fasttreeid)
-	defer p.galaxy.DeleteWorkflow(fasttreewf.Id)
+	tl := p.galaxy.NewToolLauncher(historyid, p.fasttreeid)
+	tl.AddFileInput("input", alignfileid, "hda")
+
+	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
+		tl.AddParameter("sequence_type|seqtype", "")
+	} else if a.AlignAlphabet == model.ALIGN_NUCLEOTIDS {
+		tl.AddParameter("sequence_type|seqtype", "-nt")
+	} else {
+		err = errors.New("Unkown sequence alphabet in alignment")
+		return
+	}
+	tl.AddParameter("modelprot", "-lg")
+	tl.AddParameter("modeldna", "-gtr")
+	tl.AddParameter("gamma", "-gamma")
+	tl.AddParameter("support_condition|support", "boot")
+	tl.AddParameter("support_condition|nboot", fmt.Sprintf("%d", a.NbootRep))
+	tl.AddParameter("inpuTree|inputtree", "false")
+
+	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
-		log.Print("Error while importing FastTree oneclick workflow: " + err.Error())
+		log.Print("Error while launching booster: " + err.Error())
 		return
 	}
 
-	// Initializes FastTree launcher
-	l := p.galaxy.NewWorkflowLauncher(historyid, fasttreewf.Id)
-	l.AddFileInput("0", alignfileid, "hda")
-	l.AddParameter(5, "support_condition|support", "boot")
-	l.AddParameter(5, "support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-
-	if wfinvocation, err = p.galaxy.LaunchWorkflow(l); err != nil {
-		log.Print("Error while launching PHYML-SMS oneclick workflow: " + err.Error())
+	if len(jobs) != 1 {
+		log.Print("Galaxy Error: No jobs in the list")
+		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
 
 	// Now waits for the end of the execution
 	for {
-		if wfstate, err = p.galaxy.CheckWorkflow(wfinvocation); err != nil {
+		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
 			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
 			return
 		}
-		switch wfstate.Status() {
+		switch state {
 		case "ok":
-			if fbptreeid, err = wfstate.StepOutputFileId(4, "output_tree"); err != nil {
-				log.Print("Error while getting fbp support tree output file id of FastTree oneclick workflow: " + err.Error())
+			var ok bool
+			// fbp tree file
+			if fbptreeid, ok = files["output_tree"]; !ok {
+				err = errors.New("Error while getting support tree output file id of FastTree workflow")
+				log.Print(err.Error())
+				return
+			}
+			// tbe norm tree
+			if tbenormtreeid, ok = files["tbe_norm_tree"]; !ok {
+				err = errors.New("Error while getting raw distance tree output file id of FastTree workflow")
+				log.Print(err.Error())
+				return
+			}
+			// tbe raw tree
+			if tberawtreeid, ok = files["tbe_raw_tree"]; !ok {
+				err = errors.New("Error while getting raw distance tree output file id of FastTree workflow")
+				log.Print(err.Error())
 				return
 			}
 
-			if tbenormtreeid, err = wfstate.StepOutputFileId(4, "tbe_norm_tree"); err != nil {
-				log.Print("Error while getting support tree output file id of FastTree oneclick workflow: " + err.Error())
-				return
-			}
-
-			if tberawtreeid, err = wfstate.StepOutputFileId(4, "tbe_raw_tree"); err != nil {
-				log.Print("Error while getting raw tree output file id of FastTree oneclick workflow: " + err.Error())
-				return
-			}
-
-			if tbelogid, err = wfstate.StepOutputFileId(4, "tbe_log"); err != nil {
-				log.Print("Error while getting booster log file from FastTree oneclick workflow: " + err.Error())
+			// tbe logs
+			if tbelogid, ok = files["tbe_log"]; !ok {
+				err = errors.New("Error while getting tbe log file id PHYML-SMS workflow")
+				log.Print(err.Error())
 				return
 			}
 			a.End = time.Now().Format(time.RFC1123)
@@ -435,15 +469,14 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 				log.Print("Problem updating job: " + err.Error())
 			}
 		default: // May be "unknown", "deleted", "error" or other...
-			err = errors.New("Job state : " + wfstate.Status())
+			err = errors.New("Job state : " + state)
 			a.Status = model.STATUS_ERROR
-			log.Print("Job in unknown state: " + wfstate.Status())
+			log.Print("Job in unknown state: " + state)
 			p.db.UpdateAnalysis(a)
 			return
 		}
 		time.Sleep(10 * time.Second)
 		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
-			p.galaxy.DeleteWorkflowRun(wfinvocation)
 			err = errors.New("Job timedout")
 			a.Status = model.STATUS_TIMEOUT
 			a.Message = "Time out: Job canceled"
@@ -480,18 +513,22 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
-		// We upload ref sequence file to history
-		seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta")
-		if err != nil {
-			log.Print("Error while Uploading reference sequence file: " + err.Error())
-			return
-		}
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
+			// We convert the align file to phylip and upload it to history
+			if seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta"); err != nil {
+				log.Print("Error while Uploading reference sequence file: " + err.Error())
+				return
+			}
 			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, history.Id, seqid); err != nil {
 				log.Print("Error while launching PhyML-SMS workflow : " + err.Error())
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
+			// We upload the ref fasta sequence file to history
+			if seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta"); err != nil {
+				log.Print("Error while Uploading reference sequence file: " + err.Error())
+				return
+			}
 			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, history.Id, seqid); err != nil {
 				log.Print("Error while launching FastTree workflow : " + err.Error())
 				return
