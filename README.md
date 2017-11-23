@@ -66,8 +66,8 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * url="[url of the galaxy server: http(s)://ip:port]"
 * galaxy.tools
   * booster="[Id of booster tool on the galaxy server]"
-* galaxy.workflows
-  * phyml="[Id of ngphylogeny.fr PHYML oneclick workflow to run]"
+  * phyml="[Id of PHYML-SMS tool on the galaxy server]"
+  * fasttree="[Id of FastTree tool on the galaxy server]"
 * notification (for notification when jobs are finished)
   * activated=[true|false]
   * smtp="[smtp serveur for sending email]"
