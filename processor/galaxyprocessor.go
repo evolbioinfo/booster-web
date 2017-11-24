@@ -40,16 +40,18 @@ import (
 //
 // It can launch only booster if analysis input files are
 type GalaxyProcessor struct {
-	runningJobs map[string]*model.Analysis // All running jobs key:job id, value:Job
-	galaxy      *golaxy.Galaxy             // Connection to Galaxy
-	queue       chan *model.Analysis       // Queue of analyses
-	boosterid   string                     // Galaxy ID of booster tool
-	phymlid     string                     // Galaxy ID of phyml Workflow
-	fasttreeid  string                     // Galaxy ID of fasttree Workflow
-	db          database.BoosterwebDB      // Connection to database to save results
-	notifier    notification.Notifier      // For email notifications
-	lock        sync.RWMutex               // Lock to modify running jobs
-	timeout     int                        // Timeout in seconds: jobs are timedout after this time
+	runningJobs      map[string]*model.Analysis // All running jobs key:job id, value:Job
+	runningHistories map[string]string          // Histories of all running jobs key:job id, value:galaxy history id
+
+	galaxy     *golaxy.Galaxy        // Connection to Galaxy
+	queue      chan *model.Analysis  // Queue of analyses
+	boosterid  string                // Galaxy ID of booster tool
+	phymlid    string                // Galaxy ID of phyml Workflow
+	fasttreeid string                // Galaxy ID of fasttree Workflow
+	db         database.BoosterwebDB // Connection to database to save results
+	notifier   notification.Notifier // For email notifications
+	lock       sync.RWMutex          // Lock to modify running jobs
+	timeout    int                   // Timeout in seconds: jobs are timedout after this time
 }
 
 // It will add the Analysis to the Queue and store it in the database
@@ -74,9 +76,13 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 
 // Initializes the Galaxy Processor
 func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout int) {
+	var tool golaxy.ToolInfo
+	var err error
+
 	p.notifier = notifier
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
+	p.runningHistories = make(map[string]string)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 	p.boosterid = boosterid
 	p.phymlid = phymlid
@@ -95,33 +101,28 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	log.Print("Init galaxy processor")
 	log.Print(fmt.Sprintf("Queue size: %d", queuesize))
 	log.Print(fmt.Sprintf("Searching Booster tool : %s", boosterid))
-	if tools, err := p.galaxy.SearchToolID(boosterid); err != nil {
+	if tool, err = p.galaxy.GetToolById(boosterid); err != nil {
 		log.Fatal(err)
-	} else {
-		if len(tools) == 0 {
-			log.Fatal("No tools correspond to the id: " + boosterid)
-		} else {
-			p.boosterid = tools[len(tools)-1]
-		}
 	}
+	p.boosterid = tool.Id
+
 	log.Print(fmt.Sprintf("Booster galaxy tool id: %s", p.boosterid))
 
 	// Searches the PhyML-SMS workflow with given id (checks that it exists)
-	if phymlwf, err2 := p.galaxy.GetWorkflowByID(phymlid, true); err2 != nil {
-		log.Fatal(err2)
-	} else {
-		p.phymlid = phymlwf.Id
+	if tool, err = p.galaxy.GetToolById(phymlid); err != nil {
+		log.Fatal("Error while getting phyml workflow id: " + err.Error())
 	}
+	p.phymlid = tool.Id
 
-	log.Print(fmt.Sprintf("PhyML-SMS oneclick galaxy shared workflow id: %s", p.phymlid))
+	log.Print(fmt.Sprintf("PhyML-SMS galaxy tool id: %s", p.phymlid))
 
 	// Searches the FastTree workflow with given id (checks that it exists)
-	if fasttreewf, err3 := p.galaxy.GetWorkflowByID(fasttreeid, true); err3 != nil {
-		log.Fatal(err3)
-	} else {
-		p.fasttreeid = fasttreewf.Id
+	if tool, err = p.galaxy.GetToolById(fasttreeid); err != nil {
+		log.Fatal("Error while getting fasttree workflow id: " + err.Error())
 	}
-	log.Print(fmt.Sprintf("FastTree oneclick galaxy shared workflow id: %s", p.fasttreeid))
+	p.fasttreeid = tool.Id
+
+	log.Print(fmt.Sprintf("FastTree galaxy tool id: %s", p.fasttreeid))
 
 	p.queue = make(chan *model.Analysis, queuesize)
 
@@ -269,7 +270,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 		return
 	}
 	tl.AddParameter("stat_crit", "aic")
-	tl.AddParameter("move", "nni")
+	tl.AddParameter("move", "NNI")
 	tl.AddParameter("support_condition|support", "boot")
 	tl.AddParameter("support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
 	tl.AddParameter("inpuTree|inputtree", "false")
@@ -504,7 +505,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		return
 	}
 	log.Print("History: " + history.Id)
-
+	p.newHistory(a, history.Id)
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
 	if a.SeqAlign != "" {
@@ -604,10 +605,20 @@ func (p *GalaxyProcessor) newRunningJob(a *model.Analysis) {
 	p.runningJobs[a.Id] = a
 }
 
+// Keep track of currently running job galaxy histories.
+// In order to remove them when the server stops
+func (p *GalaxyProcessor) newHistory(a *model.Analysis, historyId string) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.runningHistories[a.Id] = historyId
+}
+
 func (p *GalaxyProcessor) rmRunningJob(a *model.Analysis) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	delete(p.runningHistories, a.Id)
 	delete(p.runningJobs, a.Id)
 }
 
@@ -630,6 +641,11 @@ func (p *GalaxyProcessor) CancelAnalyses() (err error) {
 		if err = p.db.UpdateAnalysis(a); err != nil {
 			log.Print(err)
 		}
+		if historyid, ok := p.runningHistories[a.Id]; ok {
+			p.galaxy.DeleteHistory(historyid)
+		}
+		p.rmRunningJob(a)
 	}
+
 	return
 }
