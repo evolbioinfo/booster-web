@@ -2,6 +2,8 @@ function updateNbootInput(val) {
     document.getElementById('nboottext').innerHTML=val; 
 }
 
+var timer=0;
+
 $( document ).ready(function() {
     // When sequence file is selected,
     // Tree files are cleared
@@ -17,4 +19,13 @@ $( document ).ready(function() {
     });
     
     $("#nboottext").html($("#nboot").val());
+
+    timer=$('meta[http-equiv=refresh]').attr("content");
+    timerfunc();
+    setInterval(timerfunc, 1000);
 });
+
+function timerfunc(){
+    $("#timeout").text(timer);
+    timer=timer-1;
+}

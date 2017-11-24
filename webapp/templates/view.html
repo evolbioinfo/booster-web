@@ -31,14 +31,18 @@ BOOSTER - Results {{.Id}}
 <script src="/static/js/phylo.js"></script>
 {{/* If status is RUNNING OR PENDING : We refresh the page after 5 seconds */}}
 {{if (or (eq .Status 0) (eq .Status 1)) }}
-<meta http-equiv="refresh" content="5">
+<meta http-equiv="refresh" content="15">
 {{ end }}
 
 {{ end }}
 
 {{ define "content" }}
 <div class="panel panel-default">
-  <div class="panel-heading">Run Information</div>
+  <div class="panel-heading">Run Information
+    {{if (or (eq .Status 0) (eq .Status 1)) }}
+    (Page will refresh in <span id="timeout"></span>s)
+    {{end}}
+  </div>
   <div class="panel-body">
     <ul>
       <li>ID: {{.Id}}</li>
