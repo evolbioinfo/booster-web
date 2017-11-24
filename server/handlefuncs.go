@@ -331,11 +331,11 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 
 		switch layout {
 		case "radial":
-			l = draw.NewRadialLayout(d, false, false, false, true)
+			l = draw.NewRadialLayout(d, false, true, false, true)
 		case "circular":
-			l = draw.NewCircularLayout(d, false, false, false, true)
+			l = draw.NewCircularLayout(d, false, true, false, true)
 		case "normal":
-			l = draw.NewNormalLayout(d, false, false, false, true)
+			l = draw.NewNormalLayout(d, false, true, false, true)
 		default:
 			err := errors.New("Tree layout not recognized")
 			io.LogError(err)
