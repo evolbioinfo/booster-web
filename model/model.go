@@ -218,14 +218,19 @@ func (a *Analysis) RunTimeDuration() (delta time.Duration, err error) {
 	return
 }
 
+// A job is considered timed out if its run time is > than the given timeout
+// and the given timeout is > 0
+//
+// A timeout <= 0 means : no time timit on runtime
 func (a *Analysis) TimedOut(timeout time.Duration) (timedout bool, err error) {
 	timedout = true
+
 	var start, end time.Time
 	if start, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
 		return
 	}
 	end = time.Now()
 
-	timedout = end.After(start.Add(timeout))
+	timedout = timeout != 0 && end.After(start.Add(timeout))
 	return
 }
