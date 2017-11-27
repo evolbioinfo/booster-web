@@ -160,7 +160,7 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 					p.rmRunningJob(a)
 
 					a.DelTemp()
-					if err = p.notifier.Notify(a.StatusStr(), a.Id, a.EMail); err != nil {
+					if err = p.notifier.Notify(a.StatusStr(), a.Id, a.WorkflowStr(), a.EMail); err != nil {
 						io.LogError(err)
 					}
 					wg.Done()

@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,8 @@ import (
 	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/notification"
 	"github.com/fredericlemoine/golaxy"
+	"github.com/fredericlemoine/gotree/io/newick"
+	"github.com/fredericlemoine/gotree/tree"
 )
 
 // The Galaxy processor launches jobs on a remote galaxy server
@@ -142,7 +145,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 				}
 				p.rmRunningJob(a)
 				p.db.UpdateAnalysis(a)
-				if err = p.notifier.Notify(a.StatusStr(), a.Id, a.EMail); err != nil {
+				if err = p.notifier.Notify(a.StatusStr(), a.Id, a.WorkflowStr(), a.EMail); err != nil {
 					log.Print(err)
 				}
 			}
@@ -571,6 +574,18 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		return
 	}
 	a.FbpTree = string(outcontent)
+
+	// We scale branch supports from [0,nbootrep] to [0,1] for phyml
+	if a.Workflow == model.WORKFLOW_PHYML_SMS {
+		var t *tree.Tree
+		if t, err = newick.NewParser(strings.NewReader(a.FbpTree)).Parse(); err != nil {
+			log.Print("Error while scaling phyml branch supports to [0,1]: " + err.Error())
+			return
+		} else {
+			t.ScaleSupports(1.0 / float64(a.NbootRep))
+			a.FbpTree = t.Newick()
+		}
+	}
 
 	if outcontent, err = p.galaxy.DownloadFile(history.Id, tbenormtreeid); err != nil {
 		log.Print("Error while downloading support file: " + err.Error())
