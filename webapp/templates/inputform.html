@@ -33,7 +33,7 @@ BOOSTER - Run
 <form action="/run" method="POST" enctype="multipart/form-data">
   {{if .GalaxyProcessor }}
   <fieldset class="form-group">
-    <legend class="fieldset-border">You have input sequences (fasta format)</legend>
+    <legend class="fieldset-border">You have sequences already aligned (fasta/phylip/nexus formats)</legend>
     <div>
       <label for="refalign">Input Sequences</label>
       <input type="file" class="form-control-file" id="refalign" aria-describedby="refAlignHelp" name="refalign" />
@@ -68,7 +68,7 @@ BOOSTER - Run
   </fieldset>
   {{ end }}
   <fieldset class="form-group">
-    <legend class="fieldset-border">You have reference and bootstrap trees</legend>
+    <legend class="fieldset-border">You have reference and bootstrap trees already inferred</legend>
     <div>
       <label for="reftree">Reference tree</label>
       <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />
