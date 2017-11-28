@@ -274,7 +274,7 @@ func (db *MySQLBoosterwebDB) DeleteOldAnalyses(days int) (err error) {
 		return errors.New("Database not opened")
 	}
 
-	query := `DELETE from analysis where STR_TO_DATE(replace(replace(startpending,"CET",""),"CEST",""), '%a, %d %b %Y %H:%i:%S')<DATE_SUB(CURDATE(), INTERVAL `
+	query := `UPDATE analysis set alignfile='',fbptree='', tbenormtree='', tberawtree='',tbelogs='',status=6 where STR_TO_DATE(replace(replace(end,"CET",""),"CEST",""), '%a, %d %b %Y %H:%i:%S')<DATE_SUB(CURDATE(), INTERVAL `
 	query += fmt.Sprintf("%d", days) + " DAY);"
 
 	_, err = db.db.Exec(query)

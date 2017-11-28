@@ -40,6 +40,7 @@ const (
 	STATUS_ERROR      = 3
 	STATUS_CANCELED   = 4
 	STATUS_TIMEOUT    = 5
+	STATUS_DELETED    = 6
 
 	WORKFLOW_NIL       = -1
 	WORKFLOW_PHYML_SMS = 8
@@ -113,6 +114,8 @@ func (a *Analysis) StatusStr() (st string) {
 		st = "Canceled"
 	case STATUS_TIMEOUT:
 		st = "Timeout"
+	case STATUS_DELETED:
+		st = "Deleted"
 	default:
 		st = "Unknown"
 	}
