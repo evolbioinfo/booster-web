@@ -108,6 +108,8 @@ nbrunners  = 1
 jobthreads  = 10
 # Timout for each job in seconds (default unlimited): for local only
 #timeout  = 10
+# Keep old finished analyses for 10 days, default=0 (unlimited)
+keepold = 10
 
 #Only used if runners.type="galaxy"
 [galaxy]
