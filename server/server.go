@@ -218,7 +218,13 @@ func initProcessor(cfg config.Provider) {
 			log.Fatal("galaxykey must be provided in configuration file when type=galaxy")
 		}
 		if boosterid == "" {
-			boosterid = "booster"
+			log.Fatal("booster tool id  must be provided in configuration file when type=galaxy")
+		}
+		if phymlid == "" {
+			log.Fatal("phyml-sms tool id  must be provided in configuration file when type=galaxy")
+		}
+		if fasttreeid == "" {
+			log.Fatal("fasttree tool id  must be provided in configuration file when type=galaxy")
 		}
 		galproc := &processor.GalaxyProcessor{}
 		galaxyprocessor = true
