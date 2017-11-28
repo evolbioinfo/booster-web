@@ -48,7 +48,7 @@ type dbanalysis struct {
 	email         string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Email of the analysis creator
 	seqalign      string `mysql-type:"blob"`                                            // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
 	nbootrep      int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
-	alignfile     string `mysql-type:"blob"`                                            // alignment input file (if user wants to build the trees)
+	alignfile     string `mysql-type:"longblob"`                                        // alignment input file (if user wants to build the trees)
 	alignalphabet int    `mysql-type:"int"`                                             // alignment alphabet 0: aa | 1: nt
 	workflow      int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
 	reffile       string `mysql-type:"blob"`                                            // reference tree file
@@ -265,4 +265,19 @@ func (db *MySQLBoosterwebDB) checkColumns() error {
 	}
 
 	return err
+}
+
+// Will delete analyses older than d days
+func (db *MySQLBoosterwebDB) DeleteOldAnalyses(days int) (err error) {
+	log.Print("Mysql database : Deleting old analyses")
+	if db.db == nil {
+		return errors.New("Database not opened")
+	}
+
+	query := `DELETE from analysis where STR_TO_DATE(replace(replace(startpending,"CET",""),"CEST",""), '%a, %d %b %Y %H:%i:%S')<DATE_SUB(CURDATE(), INTERVAL `
+	query += fmt.Sprintf("%d", days) + " DAY);"
+
+	_, err = db.db.Exec(query)
+
+	return
 }

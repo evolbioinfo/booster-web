@@ -27,6 +27,7 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/fredericlemoine/booster-web/model"
 )
@@ -77,4 +78,19 @@ func (db *MemoryBoosterWebDB) InitDatabase() error {
 	log.Print("Initializing in memory database")
 	db.allanalyses = make(map[string]*model.Analysis)
 	return nil
+}
+
+// Will delete analyses older than d days
+func (db *MemoryBoosterWebDB) DeleteOldAnalyses(days int) (err error) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	log.Print("In memory database : Deleting old analyses")
+
+	for id, a := range db.allanalyses {
+		if o, _ := a.OlderThan(time.Duration(days*24) * time.Hour); o {
+			delete(db.allanalyses, id)
+		}
+	}
+	return
+
 }

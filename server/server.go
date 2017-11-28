@@ -296,6 +296,19 @@ func initDB(cfg config.Provider) {
 	if err := db.InitDatabase(); err != nil {
 		log.Fatal(err)
 	}
+	initOldAnalysisCleaner(cfg)
+}
+
+func initOldAnalysisCleaner(cfg config.Provider) {
+	// Will delete old analyses from database
+	// once a day
+	agelimit := cfg.GetInt("database.keepold")
+	go func() {
+		if err := db.DeleteOldAnalyses(agelimit); err != nil {
+			log.Print("Error while deleting old analyses: " + err.Error())
+		}
+		time.Sleep(24 * time.Hour)
+	}()
 }
 
 func initLog(cfg config.Provider) {

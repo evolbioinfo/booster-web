@@ -33,4 +33,5 @@ type BoosterwebDB interface {
 	Connect() error
 	Disconnect() error
 	InitDatabase() error
+	DeleteOldAnalyses(days int) error
 }

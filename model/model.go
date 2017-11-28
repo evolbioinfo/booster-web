@@ -234,3 +234,17 @@ func (a *Analysis) TimedOut(timeout time.Duration) (timedout bool, err error) {
 	timedout = timeout != 0 && end.After(start.Add(timeout))
 	return
 }
+
+// A job is considered old if its end time is < today-days
+//
+// A timeout <= 0 means : no limit on job age
+func (a *Analysis) OlderThan(agelimit time.Duration) (old bool, err error) {
+	old = true
+
+	var end time.Time
+	if end, err = time.Parse(time.RFC1123, a.End); err != nil {
+		return
+	}
+	old = agelimit != 0 && time.Now().After(end.Add(agelimit))
+	return
+}
