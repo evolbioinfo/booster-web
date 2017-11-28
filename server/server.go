@@ -310,10 +310,12 @@ func initOldAnalysisCleaner(cfg config.Provider) {
 	// once a day
 	agelimit := cfg.GetInt("database.keepold")
 	go func() {
-		if err := db.DeleteOldAnalyses(agelimit); err != nil {
-			log.Print("Error while deleting old analyses: " + err.Error())
+		for {
+			if err := db.DeleteOldAnalyses(agelimit); err != nil {
+				log.Print("Error while deleting old analyses: " + err.Error())
+			}
+			time.Sleep(24 * time.Hour)
 		}
-		time.Sleep(24 * time.Hour)
 	}()
 }
 
