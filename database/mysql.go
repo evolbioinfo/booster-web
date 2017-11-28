@@ -46,19 +46,19 @@ type MySQLBoosterwebDB struct {
 type dbanalysis struct {
 	id            string `mysql-type:"varchar(100)" mysql-other:"NOT NULL PRIMARY KEY"` // Id of the analysis
 	email         string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Email of the analysis creator
-	seqalign      string `mysql-type:"blob"`                                            // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	seqalign      string `mysql-type:"blob" mysql-default:"''"`                         // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
 	nbootrep      int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
-	alignfile     string `mysql-type:"longblob"`                                        // alignment input file (if user wants to build the trees)
-	alignalphabet int    `mysql-type:"int"`                                             // alignment alphabet 0: aa | 1: nt
+	alignfile     string `mysql-type:"longblob"  mysql-default:"''"`                    // alignment input file (if user wants to build the trees)
+	alignalphabet int    `mysql-type:"int" mysql-default:"-1`                           // alignment alphabet 0: aa | 1: nt
 	workflow      int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
-	reffile       string `mysql-type:"blob"`                                            // reference tree file
-	bootfile      string `mysql-type:"blob"`                                            // boot tree file
-	fbptree       string `mysql-type:"longtext"`                                        // tree with fbp supports
-	tbenormtree   string `mysql-type:"longtext"`                                        // tree with normalized tbe supports
-	tberawtree    string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
-	tbelogs       string `mysql-type:"longtext"`                                        // tbe log file
+	reffile       string `mysql-type:"blob"  mysql-default:"''"`                        // reference tree file
+	bootfile      string `mysql-type:"blob"  mysql-default:"''"`                        // boot tree file
+	fbptree       string `mysql-type:"longtext"  mysql-default:"''"`                    // tree with fbp supports
+	tbenormtree   string `mysql-type:"longtext"  mysql-default:"''"`                    // tree with normalized tbe supports
+	tberawtree    string `mysql-type:"longtext"  mysql-default:"''"`                    // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
+	tbelogs       string `mysql-type:"longtext"  mysql-default:"''"`                    // tbe log file
 	status        int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
-	message       string `mysql-type:"longtext"`                                        // Optional message
+	message       string `mysql-type:"longtext"  mysql-default:"''"`                    // Optional message
 	nboot         int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
 	startpending  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
 	startrunning  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being running
