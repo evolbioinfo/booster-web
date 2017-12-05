@@ -119,10 +119,10 @@ url="https://galaxy.server.com/"
 [galaxy.tools]
 # Id of booster tool on the galaxy server
 booster="/.../booster/booster/version"
-
-[galaxy.workflows]
-# Id of ngphylogeny.fr PHYML oneclick workflow
-phyml="workflow_id"
+# Id of PhyML-SMS tool on the galaxy server
+phyml="/.../phyml-sms/version"
+# Id of FastTree tool on the galaxy server
+fasttree="/.../fasttree/version"
 
 # For notification when job is finished
 [notification]
