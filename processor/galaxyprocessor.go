@@ -293,7 +293,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 	// Now waits for the end of the execution
 	for {
 		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
-			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
+			log.Print("Error while checking PHYML-SMS workflow status : " + err.Error())
 			return
 		}
 		switch state {
@@ -410,7 +410,7 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 	// Now waits for the end of the execution
 	for {
 		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
-			log.Print("Error while checking PHYML-SMS oneclick workflow status : " + err.Error())
+			log.Print("Error while checking FastTree workflow status : " + err.Error())
 			return
 		}
 		switch state {
@@ -437,7 +437,7 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 
 			// tbe logs
 			if tbelogid, ok = files["tbe_log"]; !ok {
-				err = errors.New("Error while getting tbe log file id PHYML-SMS workflow")
+				err = errors.New("Error while getting tbe log file id FastTree workflow")
 				log.Print(err.Error())
 				return
 			}
