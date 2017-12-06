@@ -78,7 +78,7 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 }
 
 // Initializes the Galaxy Processor
-func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout int) {
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, galaxyrequestattempts int, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout int) {
 	var tool golaxy.ToolInfo
 	var err error
 
@@ -87,6 +87,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	p.runningJobs = make(map[string]*model.Analysis)
 	p.runningHistories = make(map[string]string)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
+	p.galaxy.SetNbRequestAttempts(galaxyrequestattempts)
 	p.boosterid = boosterid
 	p.phymlid = phymlid
 	p.fasttreeid = fasttreeid
@@ -243,7 +244,7 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 			p.db.UpdateAnalysis(a)
 			return
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
 			err = errors.New("Job timedout")
 			a.Status = model.STATUS_TIMEOUT
@@ -360,7 +361,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 			p.db.UpdateAnalysis(a)
 			return
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
 			err = errors.New("Job timedout")
 			a.Status = model.STATUS_TIMEOUT
@@ -479,7 +480,7 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 			p.db.UpdateAnalysis(a)
 			return
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
 			err = errors.New("Job timedout")
 			a.Status = model.STATUS_TIMEOUT

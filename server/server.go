@@ -203,9 +203,14 @@ func initProcessor(cfg config.Provider) {
 	galaxykey := cfg.GetString("galaxy.key")
 	galaxyurl := cfg.GetString("galaxy.url")
 	proctype := cfg.GetString("runners.type")
+	requestattempts := cfg.GetInt("galaxy.requestattempts")
 	boosterid := cfg.GetString("galaxy.tools.booster")
 	phymlid := cfg.GetString("galaxy.tools.phyml")
 	fasttreeid := cfg.GetString("galaxy.tools.fasttree")
+
+	if requestattempts == 0 {
+		requestattempts = 1
+	}
 
 	galaxyprocessor = false
 
@@ -228,7 +233,7 @@ func initProcessor(cfg config.Provider) {
 		}
 		galproc := &processor.GalaxyProcessor{}
 		galaxyprocessor = true
-		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, db, emailNotifier, queuesize, timeout)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, requestattempts, db, emailNotifier, queuesize, timeout)
 		proc = galproc
 	case "local", "":
 		// Local or not set
