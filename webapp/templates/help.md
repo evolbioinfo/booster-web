@@ -9,14 +9,13 @@ Two kinds of jobs may be submited to BOOSTER-WEB:
 
 ### Whole phylogenetic analysis
 
-If you do not have reference and bootstrap trees already computed, you may just submit an alignment file to the [run](/new) input form (may be gzipped), in the "input sequence" field. 
-The alignment file may be in Fasta, Phylip or Nexus format.
+If you do not have reference and bootstrap tree files, you can submit a multiple alignment to the [run](/new) input form (Fasta, Phylip or Nexus format, may be gzipped), in the "input sequence" field. 
 
-In that case, you may choose between two workflows to run:
-1. PhyML-SMS;
-2. FastTree.
+In that case, you can choose the workflow to run:
+1. PhyML-SMS (for small/medium dataset);
+2. FastTree (for larger datasets).
 
-These two workflows are installed and launched on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server. 
+These two workflows are installed and launched on the Instut Pasteur [Galaxy](https://galaxy.pasteur.fr/) server.
 
 They constist of the following steps:
 
@@ -25,25 +24,25 @@ They constist of the following steps:
 	b. Reference + Bootstrap Tree reconstructions using [FastTree](http://www.microbesonline.org/fasttree/)
 2. Bootstrap support computation using [booster](https://github.com/evolbioinfo/booster/).
 
-### Bootrap support computation
+### Bootstrap support computation
 
-You may also directly submit BOOSTER jobs on the [run](/new) page. In that case, only two inputs are required:
+If you have reference and bootstrap tree files, you can also directly submit BOOSTER jobs ([run](/new) page). In that case, two inputs are required:
 
-1. A reference tree file in newick format (may be gzipped)
-2. A bootstrap tree file containing all the bootstrap trees (may be gzipped)
+1. A reference tree file in newick format (may be gzipped);
+2. A bootstrap tree file containing all the bootstrap trees (may be gzipped).
 
 ### Workflow
 
-Please note that if an alignment  file (Fasta, Phylip or Nexus) is provided, no tree file will be taken into account.
+Please note that if a multiple alignment file is provided, no tree file will be taken into account.
 
-Clicking the "run" button will launch one of the analyses, and will take you to the result page, with the following steps:
+Clicking the "run" button will launch the selected analysis, and will take you to a result page, with the following steps:
 
 1. The analysis will be first pending, waiting for available resources;
 2. Then, as soon as the analysis is running, you will be redirected to a waiting page;
 3. After 5 days, the analysis is "timedout". If you want to analyze a large number of large bootstrap trees, we advise to do it through [command-line](#commandline);
-4. Once the analysis done, result page shows the following panels:
-        1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, output message);
-    2. Links to download results:
+4. Once the analysis is done, the result page shows the following panels:
+        1. Informations about the run (identifier, start/end time, number of bootstrap trees analyzed, and output message);
+    2. Links to download the results:
 	   1. Alignment file (only for whole phylogenetic analysis);
 	   2. Tree with FBP (classical) supports;
 	   2. Tree with TBE (transfer bootstrap) normalized supports (download newick format or upload to iTOL);
@@ -51,11 +50,11 @@ Clicking the "run" button will launch one of the analyses, and will take you to 
 	   4. Booster log file with 2 parts:
 		  1. Transfer score per taxa (2 columns, "Taxon : Transfer Score");
 		  2. Most transfered taxa per branch (4 columns: Branch Id\tp\tAverage distance\tsemicolumn separated list of most transfered taxa with their respective transfer index)
-    3. Tree visualizer that highlights branches with a support greater than the cutoff given by the slider.
+    3. Tree visualizer that highlights branches with a support (FBP or TBE) greater than the cutoff given by the slider.
 
 ## Generating reference and bootstrap trees
 
-Ig you want to generate reference and bootstrap trees with other means, you may do it using the following commands:
+If you want to generate reference and bootstrap trees via other means, you can do it using the following commands:
 
 * PhyML: Input file: alignment, Phylip format
 ```bash
@@ -104,16 +103,15 @@ iqtree-omp -wbt -s align.phy -m GTR -bb 100 -nt 5
 
 ## Example dataset
 
-You may try BOOSTER-WEB with the following trees inferred from primate nt alignment taken from ["The Phylogenetic Handbook"](http://www.cambridge.org/catalogue/catalogue.asp?isbn=9780521877107):
+You can try BOOSTER-WEB with the following trees inferred from primate nt alignment taken from ["The Phylogenetic Handbook"](http://www.cambridge.org/catalogue/catalogue.asp?isbn=9780521877107):
 
 * Reference tree: [.nw.gz](/static/files/primates/ref.nw.gz)
 * 1000 Bootstrap trees: [.nw.gz](/static/files/primates/boot.nw.gz)
 
-If you want to also infer reference and bootstrap trees prior to using BOOSTER-WEB:
+If you want to also infer the reference and bootstrap trees:
 
-* Original alignment: [.phy.gz](/static/files/primates/DNA_primates.phy)
+* Original alignment: [.phy](/static/files/primates/DNA_primates.phy)
 * Nextflow workflow: [.nf](/static/files/primates/primates.nf) (`nextflow run primates.nf` to run it)
-
 
 After computing TBE and FBP using BOOSTER-WEB, you should obtain trees like the followings:
 
@@ -126,10 +124,10 @@ After computing TBE and FBP using BOOSTER-WEB, you should obtain trees like the 
 
 ## Installing a local version of the web interface
 
-The web interface has been developped in Go, and in thus executable on any platform (Linux, MacOS, and Windows).
-The only thing to do is downloading the latest release of BoosterWeb on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clicking the executable.
+The web interface has been developped in Go, and is thus executable on any platform (Linux, MacOS, and Windows).
+The only thing to do is downloading the latest release of BOOSTER-WEB on [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clicking the executable.
 
-Then open a web browser to the url [http://localhost:8080](http://localhost:8080).
+Then open a web browser to this url [http://localhost:8080](http://localhost:8080).
 
 ## <a name="commandline"></a>Computing transfer supports via command line
 BOOSTER is also available as a standalone executable (implemented in C). Sources and binaries are available on [Github](https://github.com/evolbioinfo/booster).
