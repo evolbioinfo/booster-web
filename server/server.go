@@ -425,6 +425,8 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 
 		a.Alignfile = fasta.WriteAlignment(al)
 		a.AlignAlphabet = al.Alphabet()
+		a.AlignNbSeq = al.NbSequences()
+		a.AlignLength = al.Length()
 
 		// Given workflow to launch does not exist
 		if a.Workflow, err = model.WorkflowConst(workflow); err != nil {

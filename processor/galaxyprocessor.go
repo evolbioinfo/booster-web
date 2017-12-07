@@ -34,6 +34,7 @@ import (
 	"github.com/fredericlemoine/booster-web/database"
 	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/notification"
+	"github.com/fredericlemoine/goalign/align"
 	"github.com/fredericlemoine/golaxy"
 	"github.com/fredericlemoine/gotree/io/newick"
 	"github.com/fredericlemoine/gotree/tree"
@@ -499,6 +500,8 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	var seqid string
 	var fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
 	var history golaxy.HistoryFullInfo
+	var cpulimit, memlimit int
+	var alphabetweight, alphabetsize int
 
 	// We create an history
 	history, err = p.galaxy.CreateHistory("Booster History")
@@ -513,13 +516,30 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
 	if a.SeqAlign != "" {
+
 		if a.Workflow == model.WORKFLOW_NIL {
 			err = errors.New("Phylogenetic workflow to launch is not defined")
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			// We convert the align file to phylip and upload it to history
+			// estimates phyml run time last *1: for NNI (*4 if SPR)
+			alphabetweight = 1
+			alphabetsize = 4
+			if a.AlignAlphabet == align.AMINOACIDS {
+				alphabetweight = 12
+				alphabetsize = 20
+			}
+			cpulimit = a.AlignNbSeq * a.AlignNbSeq * a.AlignLength * alphabetweight * (a.NbootRep) * 1
+			// *4* because gamma 4 categories
+			memlimit = (2*a.AlignNbSeq - 3) * 2 * a.AlignLength * 4 * alphabetsize * 8
+			if memlimit > 8000000000 || cpulimit > 70000000000 {
+				err = errors.New("The given multiple alignment is too large to be analyzed online with PhyML-SMS, please consider using PhyML-SMS locally or using FastTree workflow")
+				return
+
+			}
+
+			// The alignment was converted to phylip by server:newAnalysis function, now we upload it to history
 			if seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta"); err != nil {
 				log.Print("Error while Uploading reference sequence file: " + err.Error())
 				return
