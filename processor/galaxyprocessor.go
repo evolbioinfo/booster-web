@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -520,8 +521,9 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
+		boostercpu, boostermem := estimateBoosterRunStats(a)
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if cpu, mem := estimatePhyMLRunStats(a); mem > 8000000000 || cpu > 60000000000 {
+			if cpu, mem := estimatePhyMLRunStats(a); mem+boostermem > 432000 || cpu+boostercpu > 8000000 {
 				err = errors.New("The given multiple alignment is too large to be analyzed online with PhyML-SMS, please consider using PhyML-SMS locally or using FastTree workflow")
 				return
 			}
@@ -536,7 +538,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if cpu, mem := estimateFasTreeRunStats(a); cpu > 432000 || mem > 8000000 {
+			if cpu, mem := estimateFastTreeRunStats(a); cpu+boostercpu > 432000 || mem+boostermem > 8000000 {
 				err = errors.New("The given multiple alignment is too large to be analyzed online with FastTree, please consider using a local tree inference program")
 				return
 			}
@@ -570,7 +572,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			log.Print("Error while Uploading boot tree file: " + err.Error())
 			return
 		}
-		// Now we submit the booster tool
+
 		if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, history.Id, reffileid, bootfileid); err != nil {
 			log.Print("Error while launching Booster galaxy tool : " + err.Error())
 			return
@@ -678,35 +680,49 @@ func (p *GalaxyProcessor) CancelAnalyses() (err error) {
 	return
 }
 
-func estimateFasTreeRunStats(a *model.Analysis) (mem, time float64) {
+func estimateFastTreeRunStats(a *model.Analysis) (mem, time float64) {
 	alphabetweight := 0.0
+	alphabetsize := 4.0
 	if a.AlignAlphabet == align.AMINOACIDS {
 		alphabetweight = 1.0
+		alphabetsize = 20.0
 	}
 
-	time = 0.3940 +
-		0.3755*alphabetweight - 0.0004725*float64(a.AlignNbSeq) - 0.008342*float64(a.AlignLength) -
-		0.008578*float64(a.AlignNbSeq)*alphabetweight + 0.001429*float64(a.AlignLength)*alphabetweight + 0.00004626*float64(a.AlignLength*a.AlignNbSeq) +
-		0.0002036*float64(a.AlignLength*a.AlignNbSeq)*alphabetweight
-	mem = 2658.40707 +
-		-12.11983*alphabetweight - 0.16194*float64(a.AlignNbSeq) - 4.91653*float64(a.AlignLength) -
-		-3.20814*float64(a.AlignNbSeq)*alphabetweight + 1.56851*float64(a.AlignLength)*alphabetweight + 0.01207*float64(a.AlignLength*a.AlignNbSeq) +
-		0.06220*float64(a.AlignLength*a.AlignNbSeq)*alphabetweight
+	time = 0.5071 +
+		0.00000006141*math.Pow(float64(a.AlignNbSeq), 1.5)*math.Log(float64(a.AlignNbSeq))*float64(a.AlignLength)*alphabetsize
+	mem = 2872 +
+		0.003412*(math.Pow(float64(a.AlignNbSeq), 1.5)+float64(a.AlignNbSeq)*float64(a.AlignLength)*alphabetsize)
 	time *= float64(a.NbootRep)
 	return
 }
 
 func estimatePhyMLRunStats(a *model.Analysis) (mem, time float64) {
-	// estimates phyml run time last *1: for NNI (*4 if SPR)
-	alphabetweight := 1.0
-	alphabetsize := 4.0
+	alphabetweight := 0.0
 	if a.AlignAlphabet == align.AMINOACIDS {
-		alphabetweight = 12.0
-		alphabetsize = 20.0
+		alphabetweight = 1.1
 	}
 
-	time = 1.0 * float64(a.AlignNbSeq*a.AlignNbSeq*a.AlignLength*a.NbootRep) * alphabetweight * 1.0
-	// *4* because gamma 4 categories
-	mem = (2.0*float64(a.AlignNbSeq) - 3.0) * 2.0 * float64(a.AlignLength) * 4.0 * alphabetsize * 8.0
+	time = 3.526 + 30.18*alphabetweight +
+		0.00002227*float64(a.AlignNbSeq*a.AlignNbSeq*a.AlignLength) +
+		0.00006672*float64(alphabetweight*a.AlignNbSeq*a.AlignNbSeq*a.AlignLength)
+	mem = 3352.7636 -
+		884.7005*alphabetweight +
+		158.6359*float64(a.AlignNbSeq) -
+		5.0467*float64(a.AlignLength) +
+		81.0603*float64(a.AlignNbSeq)*alphabetweight -
+		51.2838*float64(a.AlignLength)*alphabetweight +
+		0.3754*float64(a.AlignLength*a.AlignNbSeq) +
+		1.7922*float64(a.AlignLength*a.AlignNbSeq)*alphabetweight
+
+	time *= float64(a.NbootRep)
+	return
+}
+
+func estimateBoosterRunStats(a *model.Analysis) (mem, time float64) {
+	time = (-1.370621 +
+		0.002035*a.AlignNbSeq) ^ 2
+	mem = (4865.453 +
+		9.197*a.AlignNbSeq) ^ 2
+	time *= float64(a.NbootRep)
 	return
 }
