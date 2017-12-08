@@ -82,6 +82,7 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 
 // Initializes the Galaxy Processor
 func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, galaxyrequestattempts int, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout, memlimit int) {
+
 	var tool golaxy.ToolInfo
 	var err error
 
@@ -107,6 +108,8 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 		log.Print("The queue size is <100, it may be a problem for users")
 	}
 	log.Print("Init galaxy processor")
+	log.Print(fmt.Sprintf("Job timeout: %d", p.timeout))
+	log.Print(fmt.Sprintf("Job mem limit: %d", p.memlimit))
 	log.Print(fmt.Sprintf("Queue size: %d", queuesize))
 	log.Print(fmt.Sprintf("Searching Booster tool : %s", boosterid))
 	if tool, err = p.galaxy.GetToolById(boosterid); err != nil {
