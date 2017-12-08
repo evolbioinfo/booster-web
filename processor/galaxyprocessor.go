@@ -57,6 +57,7 @@ type GalaxyProcessor struct {
 	notifier   notification.Notifier // For email notifications
 	lock       sync.RWMutex          // Lock to modify running jobs
 	timeout    int                   // Timeout in seconds: jobs are timedout after this time
+	memlimit   int                   // Memory limit for jobs in Bytes. If jobs are estimated to consume more, they are not launched
 }
 
 // It will add the Analysis to the Queue and store it in the database
@@ -80,7 +81,7 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 }
 
 // Initializes the Galaxy Processor
-func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, galaxyrequestattempts int, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout int) {
+func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttreeid string, galaxyrequestattempts int, db database.BoosterwebDB, notifier notification.Notifier, queuesize, timeout, memlimit int) {
 	var tool golaxy.ToolInfo
 	var err error
 
@@ -94,6 +95,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	p.phymlid = phymlid
 	p.fasttreeid = fasttreeid
 	p.timeout = timeout
+	p.memlimit = memlimit
 
 	if queuesize == 0 {
 		queuesize = RUNNERS_QUEUESIZE_DEFAULT
@@ -523,7 +525,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		}
 		boostermem, boostercpu := estimateBoosterRunStats(a)
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if mem, cpu := estimatePhyMLRunStats(a); math.Max(mem, boostermem) > 8000000000 || cpu+boostercpu > 432000 {
+			if mem, cpu := estimatePhyMLRunStats(a); (p.memlimit > 0 && math.Max(mem, boostermem) > float64(p.memlimit)) || (p.timeout > 0 && cpu+boostercpu > float64(p.timeout)) {
 				err = errors.New("The given multiple alignment is too large to be analyzed online with PhyML-SMS, please consider using PhyML-SMS locally or using FastTree workflow")
 				log.Print(fmt.Sprintf("%s: Tree: mem=%.2f,cpu=%2f; Booster: mem=%.2f,cpu=%2f", err.Error(), mem, cpu, boostermem, boostercpu))
 				return
@@ -539,7 +541,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if mem, cpu := estimateFastTreeRunStats(a); cpu+boostercpu > 432000 || math.Max(mem, boostermem) > 8000000000 {
+			if mem, cpu := estimateFastTreeRunStats(a); (p.timeout > 0 && cpu+boostercpu > float64(p.timeout)) || (p.memlimit > 0 && math.Max(mem, boostermem) > float64(p.memlimit)) {
 				err = errors.New("The given multiple alignment is too large to be analyzed online with FastTree, please consider using FastTree locally")
 				log.Print(fmt.Sprintf("%s: Tree: mem=%.2f,cpu=%2f; Booster: mem=%.2f,cpu=%2f", err.Error(), mem, cpu, boostermem, boostercpu))
 				return

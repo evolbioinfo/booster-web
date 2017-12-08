@@ -199,6 +199,7 @@ func initProcessor(cfg config.Provider) {
 	nbrunners := cfg.GetInt("runners.nbrunners")
 	queuesize := cfg.GetInt("runners.queuesize")
 	timeout := cfg.GetInt("runners.timeout")
+	memlimit := cfg.GetInt("runners.memlimit")
 	jobthreads := cfg.GetInt("runners.jobthreads")
 	galaxykey := cfg.GetString("galaxy.key")
 	galaxyurl := cfg.GetString("galaxy.url")
@@ -233,7 +234,7 @@ func initProcessor(cfg config.Provider) {
 		}
 		galproc := &processor.GalaxyProcessor{}
 		galaxyprocessor = true
-		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, requestattempts, db, emailNotifier, queuesize, timeout)
+		galproc.InitProcessor(galaxyurl, galaxykey, boosterid, phymlid, fasttreeid, requestattempts, db, emailNotifier, queuesize, timeout, memlimit)
 		proc = galproc
 	case "local", "":
 		// Local or not set
@@ -314,14 +315,16 @@ func initOldAnalysisCleaner(cfg config.Provider) {
 	// Will delete old analyses from database
 	// once a day
 	agelimit := cfg.GetInt("database.keepold")
-	go func() {
-		for {
-			if err := db.DeleteOldAnalyses(agelimit); err != nil {
-				log.Print("Error while deleting old analyses: " + err.Error())
+	if agelimit > 0 {
+		go func() {
+			for {
+				if err := db.DeleteOldAnalyses(agelimit); err != nil {
+					log.Print("Error while deleting old analyses: " + err.Error())
+				}
+				time.Sleep(24 * time.Hour)
 			}
-			time.Sleep(24 * time.Hour)
-		}
-	}()
+		}()
+	}
 }
 
 func initLog(cfg config.Provider) {

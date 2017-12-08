@@ -61,6 +61,8 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * nbrunners=[number of parallel local runners]
   * jobthreads=[number of threads per local job]
   * timeout=[job timeout in seconds: 0=ulimited]
+  * memlimit=[Max allowed Memory in Bytes]
+  * keepold=[Number of days to keep results of old analyses]
 * galaxy (Only used if runners.type="galaxy")
   * key="[galaxy api key]"
   * url="[url of the galaxy server: http(s)://ip:port]"
@@ -107,7 +109,9 @@ nbrunners  = 1
 # Number of cpus per bootstrap job : for local only
 jobthreads  = 10
 # Timout for each job in seconds (default unlimited): for local only
-#timeout  = 10
+#timeout  = 1000
+# Memory limit in Bytes for each job (uses job memory estimation): for galaxy only
+#memlimit  = 8000000000
 # Keep old finished analyses for 10 days, default=0 (unlimited)
 keepold = 10
 
