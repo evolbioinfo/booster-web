@@ -521,10 +521,11 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			log.Print("Error while Uploading reference sequence file: " + err.Error())
 			return
 		}
-		boostercpu, boostermem := estimateBoosterRunStats(a)
+		boostermem, boostercpu := estimateBoosterRunStats(a)
 		if a.Workflow == model.WORKFLOW_PHYML_SMS {
-			if cpu, mem := estimatePhyMLRunStats(a); mem+boostermem > 432000 || cpu+boostercpu > 8000000 {
+			if mem, cpu := estimatePhyMLRunStats(a); math.Max(mem, boostermem) > 8000000000 || cpu+boostercpu > 432000 {
 				err = errors.New("The given multiple alignment is too large to be analyzed online with PhyML-SMS, please consider using PhyML-SMS locally or using FastTree workflow")
+				log.Print(fmt.Sprintf("%s: Tree: mem=%.2f,cpu=%2f; Booster: mem=%.2f,cpu=%2f", err.Error(), mem, cpu, boostermem, boostercpu))
 				return
 			}
 
@@ -538,8 +539,9 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				return
 			}
 		} else if a.Workflow == model.WORKFLOW_FASTTREE {
-			if cpu, mem := estimateFastTreeRunStats(a); cpu+boostercpu > 432000 || mem+boostermem > 8000000 {
-				err = errors.New("The given multiple alignment is too large to be analyzed online with FastTree, please consider using a local tree inference program")
+			if mem, cpu := estimateFastTreeRunStats(a); cpu+boostercpu > 432000 || math.Max(mem, boostermem) > 8000000000 {
+				err = errors.New("The given multiple alignment is too large to be analyzed online with FastTree, please consider using FastTree locally")
+				log.Print(fmt.Sprintf("%s: Tree: mem=%.2f,cpu=%2f; Booster: mem=%.2f,cpu=%2f", err.Error(), mem, cpu, boostermem, boostercpu))
 				return
 			}
 
@@ -681,10 +683,8 @@ func (p *GalaxyProcessor) CancelAnalyses() (err error) {
 }
 
 func estimateFastTreeRunStats(a *model.Analysis) (mem, time float64) {
-	alphabetweight := 0.0
 	alphabetsize := 4.0
 	if a.AlignAlphabet == align.AMINOACIDS {
-		alphabetweight = 1.0
 		alphabetsize = 20.0
 	}
 
@@ -704,7 +704,7 @@ func estimatePhyMLRunStats(a *model.Analysis) (mem, time float64) {
 
 	time = 3.526 + 30.18*alphabetweight +
 		0.00002227*float64(a.AlignNbSeq*a.AlignNbSeq*a.AlignLength) +
-		0.00006672*float64(alphabetweight*a.AlignNbSeq*a.AlignNbSeq*a.AlignLength)
+		0.00006672*alphabetweight*float64(a.AlignNbSeq*a.AlignNbSeq*a.AlignLength)
 	mem = 3352.7636 -
 		884.7005*alphabetweight +
 		158.6359*float64(a.AlignNbSeq) -
@@ -719,10 +719,10 @@ func estimatePhyMLRunStats(a *model.Analysis) (mem, time float64) {
 }
 
 func estimateBoosterRunStats(a *model.Analysis) (mem, time float64) {
-	time = (-1.370621 +
-		0.002035*a.AlignNbSeq) ^ 2
-	mem = (4865.453 +
-		9.197*a.AlignNbSeq) ^ 2
+	time = math.Pow(-1.370621+
+		0.002035*float64(a.AlignNbSeq), 2.0)
+	mem = math.Pow(4865.453+
+		9.197*float64(a.AlignNbSeq), 2)
 	time *= float64(a.NbootRep)
 	return
 }
