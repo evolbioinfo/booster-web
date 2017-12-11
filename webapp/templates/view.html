@@ -66,11 +66,6 @@ BOOSTER - Results {{.Id}}
   <div class="panel-heading">Downloads</div>
   <div class="panel-body">
     <ul>
-      {{if (ne .Alignfile "") }}
-      <li>Aligned sequences<br/>
-	<a class="label label-success" onclick="downloadAlignment({{.Id}})">Download alignment (fasta)</a>
-      </li>
-      {{ end }}
       <li>Tree with FBP supports<br/>
 	<a class="label label-warning" target="_blank" href="/itol/{{.Id}}/false/true">Export to iTOL</a>
 	<a class="label label-default" onclick="downloadFBPTree({{.Id}})">Download tree (newick)</a>
