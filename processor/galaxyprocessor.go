@@ -165,6 +165,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid, bootfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	// We launch the job
 	var jobs []string
+	var nbCheckErrors int
 
 	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
 	tl.AddFileInput("ref", reffileid, "hda")
@@ -181,14 +182,23 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
-
+	a.JobId = jobs[0]
+	nbCheckErrors = 0
 	for {
 		var state string
 		var files map[string]string
 		state, files, err = p.galaxy.CheckJob(jobs[0])
 		if err != nil {
-			return
+			nbCheckErrors++
+			log.Print(fmt.Sprintf("Error (#%d) while checking Job %s (history: %s): %s", nbCheckErrors, a.Id, historyid, err.Error()))
+			if nbCheckErrors == 10 {
+				err = errors.New(fmt.Sprintf("Error while checking Job status (%d times), cancelling analyis (error=%s)", nbCheckErrors, err.Error()))
+				return
+			}
+			time.Sleep(30 * time.Second)
+			continue
 		}
+		nbCheckErrors = 0
 		switch state {
 		case "ok":
 			var ok bool
@@ -297,7 +307,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
-
+	a.JobId = jobs[0]
 	// Now waits for the end of the execution
 	for {
 		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
@@ -415,6 +425,7 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 		return
 	}
 
+	a.JobId = jobs[0]
 	// Now waits for the end of the execution
 	for {
 		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {

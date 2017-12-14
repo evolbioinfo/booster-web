@@ -69,6 +69,7 @@ type Analysis struct {
 	TbeRawTree   string `json:"tberawtree"`   // result tree with raw <id|avg_dist|depth> as branch names
 	TbeLogs      string `json:"tbelogs"`      // log file
 	Status       int    `json:"status"`       // status code of the analysis
+	JobID        string `json:jobid`          // Galaxy or Local JobId
 	Message      string `json:"message"`      // error message if any
 	Nboot        int    `json:"nboot"`        // number of trees that have been processed
 	StartPending string `json:"startpending"` // Analysis queue time
@@ -91,6 +92,7 @@ func NewAnalysis() (a *Analysis) {
 		TbeRawTree:   "",
 		TbeLogs:      "",
 		Status:       STATUS_NOT_EXISTS,
+		JobId:        "",
 		Message:      "",
 		Nboot:        0,
 		StartPending: "",
