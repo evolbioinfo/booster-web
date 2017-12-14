@@ -62,42 +62,44 @@ type Analysis struct {
 	AlignNbSeq    int    `json:"nbseqs"`   // Number of sequences in the given alignment
 	AlignLength   int    `json:"length"`   // Length of the given alignment
 
-	Reffile      string `json:"-"`            // reftree original file (to be able to close it)
-	Bootfile     string `json:"-"`            // bootstrap original file (to be able to close it)
-	FbpTree      string `json:"fbptree"`      // Tree with Fbp supports
-	TbeNormTree  string `json:"tbenormtree"`  // resulting newick tree with support
-	TbeRawTree   string `json:"tberawtree"`   // result tree with raw <id|avg_dist|depth> as branch names
-	TbeLogs      string `json:"tbelogs"`      // log file
-	Status       int    `json:"status"`       // status code of the analysis
-	JobID        string `json:jobid`          // Galaxy or Local JobId
-	Message      string `json:"message"`      // error message if any
-	Nboot        int    `json:"nboot"`        // number of trees that have been processed
-	StartPending string `json:"startpending"` // Analysis queue time
-	StartRunning string `json:"startrunning"` // Analysis Start running time
-	End          string `json:"end"`          // Analysis End time
+	Reffile       string `json:"-"`            // reftree original file (to be able to close it)
+	Bootfile      string `json:"-"`            // bootstrap original file (to be able to close it)
+	FbpTree       string `json:"fbptree"`      // Tree with Fbp supports
+	TbeNormTree   string `json:"tbenormtree"`  // resulting newick tree with support
+	TbeRawTree    string `json:"tberawtree"`   // result tree with raw <id|avg_dist|depth> as branch names
+	TbeLogs       string `json:"tbelogs"`      // log file
+	Status        int    `json:"status"`       // status code of the analysis
+	JobId         string `json:jobid`          // Galaxy or Local JobId
+	GalaxyHistory string `json:galaxyhistory`  // Galaxy History
+	Message       string `json:"message"`      // error message if any
+	Nboot         int    `json:"nboot"`        // number of trees that have been processed
+	StartPending  string `json:"startpending"` // Analysis queue time
+	StartRunning  string `json:"startrunning"` // Analysis Start running time
+	End           string `json:"end"`          // Analysis End time
 }
 
 func NewAnalysis() (a *Analysis) {
 	a = &Analysis{
-		Id:           "none",
-		EMail:        "",
-		SeqAlign:     "",
-		NbootRep:     0,
-		Alignfile:    "",
-		Workflow:     WORKFLOW_NIL,
-		Reffile:      "",
-		Bootfile:     "",
-		FbpTree:      "",
-		TbeNormTree:  "",
-		TbeRawTree:   "",
-		TbeLogs:      "",
-		Status:       STATUS_NOT_EXISTS,
-		JobId:        "",
-		Message:      "",
-		Nboot:        0,
-		StartPending: "",
-		StartRunning: "",
-		End:          "",
+		Id:            "none",
+		EMail:         "",
+		SeqAlign:      "",
+		NbootRep:      0,
+		Alignfile:     "",
+		Workflow:      WORKFLOW_NIL,
+		Reffile:       "",
+		Bootfile:      "",
+		FbpTree:       "",
+		TbeNormTree:   "",
+		TbeRawTree:    "",
+		TbeLogs:       "",
+		Status:        STATUS_NOT_EXISTS,
+		JobId:         "",
+		GalaxyHistory: "",
+		Message:       "",
+		Nboot:         0,
+		StartPending:  "",
+		StartRunning:  "",
+		End:           "",
 	}
 	return
 }

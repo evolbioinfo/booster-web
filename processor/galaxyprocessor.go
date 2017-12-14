@@ -45,8 +45,7 @@ import (
 //
 // It can launch only booster if analysis input files are
 type GalaxyProcessor struct {
-	runningJobs      map[string]*model.Analysis // All running jobs key:job id, value:Job
-	runningHistories map[string]string          // Histories of all running jobs key:job id, value:galaxy history id
+	runningJobs map[string]*model.Analysis // All running jobs key:job id, value:Job
 
 	galaxy     *golaxy.Galaxy        // Connection to Galaxy
 	queue      chan *model.Analysis  // Queue of analyses
@@ -89,7 +88,6 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	p.notifier = notifier
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
-	p.runningHistories = make(map[string]string)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 	p.galaxy.SetNbRequestAttempts(galaxyrequestattempts)
 	p.boosterid = boosterid
@@ -659,14 +657,13 @@ func (p *GalaxyProcessor) newHistory(a *model.Analysis, historyId string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	p.runningHistories[a.Id] = historyId
+	a.GalaxyHistory = historyId
 }
 
 func (p *GalaxyProcessor) rmRunningJob(a *model.Analysis) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	delete(p.runningHistories, a.Id)
 	delete(p.runningJobs, a.Id)
 }
 
@@ -689,8 +686,8 @@ func (p *GalaxyProcessor) CancelAnalyses() (err error) {
 		if err = p.db.UpdateAnalysis(a); err != nil {
 			log.Print(err)
 		}
-		if historyid, ok := p.runningHistories[a.Id]; ok {
-			p.galaxy.DeleteHistory(historyid)
+		if a.GalaxyHistory != "" {
+			p.galaxy.DeleteHistory(a.GalaxyHistory)
 		}
 		p.rmRunningJob(a)
 	}
