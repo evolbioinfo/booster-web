@@ -256,6 +256,7 @@ func (p *GalaxyProcessor) checkJob(a *model.Analysis) (state, fbptreeid, tbenorm
 	default: // May be "unknown", "deleted", "error" or other...
 		err = errors.New("Job state : " + state)
 		a.Status = model.STATUS_ERROR
+		a.Message = "Galaxy Error"
 		log.Print("Job in unknown state: " + state)
 	}
 
@@ -512,11 +513,6 @@ func (p *GalaxyProcessor) initJobMonitor() {
 		for !p.stopping {
 			for _, job := range p.allRunningJobs() {
 				state, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.checkJob(job)
-				if err != nil {
-					log.Print(fmt.Sprintf("Error while checking job %s : %s", job.Id, err))
-					time.Sleep(30 * time.Second)
-					continue
-				}
 
 				if state == "error" || job.Status == model.STATUS_ERROR {
 					p.rmRunningJob(job)
@@ -543,7 +539,12 @@ func (p *GalaxyProcessor) initJobMonitor() {
 					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
 						log.Print(err)
 					}
+				} else if err != nil {
+					log.Print(fmt.Sprintf("Error while checking job %s : %s", job.Id, err))
+					time.Sleep(30 * time.Second)
+					continue
 				}
+
 				if err = p.db.UpdateAnalysis(job); err != nil {
 					log.Print("Problem updating job: " + err.Error())
 				}
