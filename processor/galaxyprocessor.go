@@ -525,7 +525,9 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		return
 	}
 	log.Print("History: " + history.Id)
-	p.newHistory(a, history.Id)
+
+	a.GalaxyHistory = history.Id
+
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
 	if a.SeqAlign != "" {
@@ -649,15 +651,6 @@ func (p *GalaxyProcessor) newRunningJob(a *model.Analysis) {
 	defer p.lock.Unlock()
 
 	p.runningJobs[a.Id] = a
-}
-
-// Keep track of currently running job galaxy histories.
-// In order to remove them when the server stops
-func (p *GalaxyProcessor) newHistory(a *model.Analysis, historyId string) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	a.GalaxyHistory = historyId
 }
 
 func (p *GalaxyProcessor) rmRunningJob(a *model.Analysis) {
