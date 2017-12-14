@@ -276,7 +276,7 @@ func initCleanKill() {
 	go func() {
 		for sig := range c {
 			log.Print(sig)
-			proc.CancelAnalyses()
+			//proc.CancelAnalyses()
 			if err := db.Disconnect(); err != nil {
 				log.Print(err)
 			}

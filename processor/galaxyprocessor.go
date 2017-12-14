@@ -151,6 +151,8 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	p.initJobLauncher()
 	// We initialize job monitoring go routine
 	p.initJobMonitor()
+	// We restore already running jobs on galaxy
+	p.restoreRunningJobs()
 }
 
 func (p *GalaxyProcessor) submitBooster(a *model.Analysis, reffileid, bootfileid string) (err error) {
@@ -550,6 +552,18 @@ func (p *GalaxyProcessor) initJobMonitor() {
 			time.Sleep(10 * time.Second)
 		}
 	}()
+}
+
+func (p *GalaxyProcessor) restoreRunningJobs() {
+	an, err := p.db.GetRunningAnalyses()
+	if err != nil {
+		log.Print(err.Error())
+	} else {
+		log.Print(fmt.Sprintf("Restoring %d Galaxy jobs", len(an)))
+		for _, a := range an {
+			p.newRunningJob(a)
+		}
+	}
 }
 
 func (p *GalaxyProcessor) downloadResults(a *model.Analysis, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string) (err error) {
