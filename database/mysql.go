@@ -60,8 +60,8 @@ type dbanalysis struct {
 	tberawtree    string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
 	tbelogs       string `mysql-type:"longtext"`                                        // tbe log file
 	status        int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
-	jobid         string `mysql-type:"vachar(100)" mysql-default:""`                    // Galaxy or local Job id
-	galaxyhistory string `mysql-type:"vachar(100)" mysql-default:""`                    // Galaxy History
+	jobid         string `mysql-type:"vachar(100)" mysql-default:"''"`                  // Galaxy or local Job id
+	galaxyhistory string `mysql-type:"vachar(100)" mysql-default:"''"`                  // Galaxy History
 	message       string `mysql-type:"longtext"`                                        // Optional message
 	nboot         int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
 	startpending  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
