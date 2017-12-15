@@ -94,3 +94,8 @@ func (db *MemoryBoosterWebDB) DeleteOldAnalyses(days int) (err error) {
 	return
 
 }
+
+func (db *MemoryBoosterWebDB) GetRunningAnalyses() (analyses []*model.Analysis, err error) {
+	analyses = make([]*model.Analysis, 0)
+	return
+}

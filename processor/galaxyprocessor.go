@@ -45,8 +45,7 @@ import (
 //
 // It can launch only booster if analysis input files are
 type GalaxyProcessor struct {
-	runningJobs      map[string]*model.Analysis // All running jobs key:job id, value:Job
-	runningHistories map[string]string          // Histories of all running jobs key:job id, value:galaxy history id
+	runningJobs map[string]*model.Analysis // All running jobs key:job id, value:Job
 
 	galaxy     *golaxy.Galaxy        // Connection to Galaxy
 	queue      chan *model.Analysis  // Queue of analyses
@@ -58,6 +57,8 @@ type GalaxyProcessor struct {
 	lock       sync.RWMutex          // Lock to modify running jobs
 	timeout    int                   // Timeout in seconds: jobs are timedout after this time
 	memlimit   int                   // Memory limit for jobs in Bytes. If jobs are estimated to consume more, they are not launched
+	queuesize  int                   // Max queue size
+	stopping   bool                  // If the server is stopping
 }
 
 // It will add the Analysis to the Queue and store it in the database
@@ -65,9 +66,17 @@ func (p *GalaxyProcessor) LaunchAnalysis(a *model.Analysis) (err error) {
 	if err = p.db.UpdateAnalysis(a); err != nil {
 		return
 	}
+	full := false
+	if len(p.runningJobs) >= p.queuesize {
+		full = true
+	}
 	select {
 	case p.queue <- a: // Put a in the channel unless it is full
 	default:
+		full = true
+	}
+
+	if full {
 		log.Print("Queue is full, cancelling job " + a.Id)
 		//Channel full. Discarding value
 		a.Status = model.STATUS_CANCELED
@@ -86,10 +95,10 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	var tool golaxy.ToolInfo
 	var err error
 
+	p.stopping = false
 	p.notifier = notifier
 	p.db = db
 	p.runningJobs = make(map[string]*model.Analysis)
-	p.runningHistories = make(map[string]string)
 	p.galaxy = golaxy.NewGalaxy(url, apikey, true)
 	p.galaxy.SetNbRequestAttempts(galaxyrequestattempts)
 	p.boosterid = boosterid
@@ -107,6 +116,7 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 	if queuesize < 100 {
 		log.Print("The queue size is <100, it may be a problem for users")
 	}
+	p.queuesize = queuesize
 	log.Print("Init galaxy processor")
 	log.Print(fmt.Sprintf("Job timeout: %d", p.timeout))
 	log.Print(fmt.Sprintf("Job mem limit: %d", p.memlimit))
@@ -137,36 +147,19 @@ func (p *GalaxyProcessor) InitProcessor(url, apikey, boosterid, phymlid, fasttre
 
 	p.queue = make(chan *model.Analysis, queuesize)
 
-	// We initialize computing routines
-	for cpu := 0; cpu < queuesize; cpu++ {
-		go func(cpu int) {
-			for a := range p.queue {
-				log.Print(fmt.Sprintf("CPU=%d | New analysis, id=%s", cpu, a.Id))
-				p.db.UpdateAnalysis(a)
-				p.newRunningJob(a)
-				err := p.submitToGalaxy(a)
-				if err != nil {
-					log.Print("Error while submitting to galaxy: " + err.Error())
-					a.Status = model.STATUS_ERROR
-					a.End = time.Now().Format(time.RFC1123)
-					a.Message = err.Error()
-				}
-				p.rmRunningJob(a)
-				p.db.UpdateAnalysis(a)
-				if err = p.notifier.Notify(a.StatusStr(), a.Id, a.WorkflowStr(), a.EMail); err != nil {
-					log.Print(err)
-				}
-			}
-			log.Print(fmt.Sprintf("CPU %d : End", cpu))
-		}(cpu)
-	}
+	// We initialize launching go routine
+	p.initJobLauncher()
+	// We initialize job monitoring go routine
+	p.initJobMonitor()
+	// We restore already running jobs on galaxy
+	p.restoreRunningJobs()
 }
 
-func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid, bootfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
+func (p *GalaxyProcessor) submitBooster(a *model.Analysis, reffileid, bootfileid string) (err error) {
 	// We launch the job
 	var jobs []string
 
-	tl := p.galaxy.NewToolLauncher(historyid, p.boosterid)
+	tl := p.galaxy.NewToolLauncher(a.GalaxyHistory, p.boosterid)
 	tl.AddFileInput("ref", reffileid, "hda")
 	tl.AddFileInput("boot", bootfileid, "hda")
 
@@ -182,94 +175,98 @@ func (p *GalaxyProcessor) submitBooster(a *model.Analysis, historyid, reffileid,
 		return
 	}
 
-	for {
-		var state string
-		var files map[string]string
-		state, files, err = p.galaxy.CheckJob(jobs[0])
-		if err != nil {
-			return
-		}
-		switch state {
-		case "ok":
-			var ok bool
-			var id string
-
-			// fbp tree file
-			if id, ok = files["fbp_tree"]; !ok {
-				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
-				return
-			}
-			fbptreeid = id
-
-			// Normalized suport tree file
-			if id, ok = files["tbe_norm_tree"]; !ok {
-				err = errors.New("Output file (normalized support tree) not present in the galaxy server")
-				return
-			}
-			tbenormtreeid = id
-
-			// Raw average distance tree file
-			if id, ok = files["tbe_raw_tree"]; !ok {
-				err = errors.New("Output file (raw distance tree) not present in the galaxy server")
-				return
-			}
-			tberawtreeid = id
-
-			// Log file
-			if id, ok = files["tbe_log"]; !ok {
-				err = errors.New("Output file (log file) not present in the galaxy server")
-				return
-			}
-			tbelogid = id
-			a.End = time.Now().Format(time.RFC1123)
-			a.Message = "Finished"
-			err = p.db.UpdateAnalysis(a)
-			return
-		case "queued":
-			a.Status = model.STATUS_PENDING
-			a.Message = "queued"
-			err = p.db.UpdateAnalysis(a)
-		case "waiting":
-			a.Status = model.STATUS_PENDING
-			a.Message = "waiting"
-			err = p.db.UpdateAnalysis(a)
-		case "running":
-			a.Status = model.STATUS_RUNNING
-			if a.StartRunning == "" {
-				a.StartRunning = time.Now().Format(time.RFC1123)
-			}
-			a.Message = "running"
-			err = p.db.UpdateAnalysis(a)
-		case "new":
-			a.Status = model.STATUS_PENDING
-			a.Message = "New Job"
-			err = p.db.UpdateAnalysis(a)
-		default:
-			err = errors.New("Unkown Job state: " + state)
-			a.Status = model.STATUS_ERROR
-			log.Print("Job in unknown state: " + state)
-			p.db.UpdateAnalysis(a)
-			return
-		}
-		time.Sleep(30 * time.Second)
-		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
-			err = errors.New("Job timedout")
-			a.Status = model.STATUS_TIMEOUT
-			a.Message = "Time out: Job canceled"
-			log.Print("Job timedout")
-			p.db.UpdateAnalysis(a)
-			return
-		}
-	}
+	a.JobId = jobs[0]
+	p.db.UpdateAnalysis(a)
+	return
 }
 
-// rawtreeid may be "" if support is classical/FBP
-func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
-	var jobs []string
-	var state string
+func (p *GalaxyProcessor) checkJob(a *model.Analysis) (state, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
 	var files map[string]string
+	var fbptreename, tbenormtreename, tberawtreename, tbelogname string
 
-	tl := p.galaxy.NewToolLauncher(historyid, p.phymlid)
+	// Now check status of galaxy job
+	if a.JobId == "" {
+		err = errors.New("Galaxy Job ID not already assigned for " + a.Id)
+		log.Print(err.Error())
+		return
+	}
+
+	// Now check status of galaxy job
+	if state, files, err = p.galaxy.CheckJob(a.JobId); err != nil {
+		log.Print("Error while checking " + a.WorkflowStr() + " workflow status : " + err.Error())
+		return
+	}
+
+	if a.SeqAlign == "" {
+		fbptreename = "fbp_tree"
+	} else {
+		fbptreename = "output_tree"
+	}
+	tbenormtreename = "tbe_norm_tree"
+	tberawtreename = "tbe_raw_tree"
+	tbelogname = "tbe_log"
+
+	switch state {
+	case "ok":
+		var ok bool
+		a.Status = model.STATUS_FINISHED
+		a.Message = "Finished"
+
+		// Get result file ids
+		if fbptreeid, ok = files[fbptreename]; !ok {
+			err = errors.New("Error while getting support tree output file id of workflow " + a.Id)
+			log.Print(err.Error())
+			state = "error"
+			a.Message = err.Error()
+			a.Status = model.STATUS_ERROR
+		} else if tbenormtreeid, ok = files[tbenormtreename]; !ok {
+			err = errors.New("Error while getting raw distance tree output file id of workflow" + a.Id)
+			log.Print(err.Error())
+			a.Message = err.Error()
+			state = "error"
+			a.Status = model.STATUS_ERROR
+		} else if tberawtreeid, ok = files[tberawtreename]; !ok {
+			err = errors.New("Error while getting raw distance tree output file id of workflow" + a.Id)
+			log.Print(err.Error())
+			a.Message = err.Error()
+			state = "error"
+			a.Status = model.STATUS_ERROR
+		} else if tbelogid, ok = files[tbelogname]; !ok {
+			err = errors.New("Error while getting tbe log file id workflow " + a.Id)
+			log.Print(err.Error())
+			a.Message = err.Error()
+			state = "error"
+		}
+		a.End = time.Now().Format(time.RFC1123)
+	case "queued":
+		a.Status = model.STATUS_PENDING
+		a.Message = "queued"
+	case "waiting":
+		a.Status = model.STATUS_PENDING
+		a.Message = "waiting"
+	case "running":
+		a.Status = model.STATUS_RUNNING
+		if a.StartRunning == "" {
+			a.StartRunning = time.Now().Format(time.RFC1123)
+		}
+		a.Message = "running"
+	case "new":
+		a.Status = model.STATUS_PENDING
+		a.Message = "New Job"
+	default: // May be "unknown", "deleted", "error" or other...
+		err = errors.New("Job state : " + state)
+		a.Status = model.STATUS_ERROR
+		a.Message = "Galaxy Error"
+		log.Print("Job in unknown state: " + state)
+	}
+
+	return
+}
+
+func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, alignfileid string) (err error) {
+	var jobs []string
+
+	tl := p.galaxy.NewToolLauncher(a.GalaxyHistory, p.phymlid)
 	tl.AddFileInput("input", alignfileid, "hda")
 
 	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
@@ -288,7 +285,7 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 
 	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
-		log.Print("Error while launching booster: " + err.Error())
+		log.Print("Error while launching PhyML-SMS: " + err.Error())
 		return
 	}
 
@@ -297,95 +294,15 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, historyid, alignfileid 
 		err = errors.New("Galaxy error: No jobs in the list")
 		return
 	}
-
-	// Now waits for the end of the execution
-	for {
-		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
-			log.Print("Error while checking PHYML-SMS workflow status : " + err.Error())
-			return
-		}
-		switch state {
-		case "ok":
-			var ok bool
-			// fbp tree file
-			if fbptreeid, ok = files["output_tree"]; !ok {
-				err = errors.New("Error while getting support tree output file id of PHYML-SMS workflow")
-				log.Print(err.Error())
-				return
-			}
-			// tbe norm tree
-			if tbenormtreeid, ok = files["tbe_norm_tree"]; !ok {
-				err = errors.New("Error while getting raw distance tree output file id of PHYML-SMS workflow")
-				log.Print(err.Error())
-				return
-			}
-			// tbe raw tree
-			if tberawtreeid, ok = files["tbe_raw_tree"]; !ok {
-				err = errors.New("Error while getting raw distance tree output file id of PHYML-SMS workflow")
-				log.Print(err.Error())
-				return
-			}
-
-			// tbe logs
-			if tbelogid, ok = files["tbe_log"]; !ok {
-				err = errors.New("Error while getting tbe log file id PHYML-SMS workflow")
-				log.Print(err.Error())
-				return
-			}
-			a.End = time.Now().Format(time.RFC1123)
-			a.Message = "Finished"
-			err = p.db.UpdateAnalysis(a)
-			return
-		case "queued":
-			a.Status = model.STATUS_PENDING
-			a.Message = "queued"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "waiting":
-			a.Status = model.STATUS_PENDING
-			a.Message = "waiting"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "running":
-			a.Status = model.STATUS_RUNNING
-			if a.StartRunning == "" {
-				a.StartRunning = time.Now().Format(time.RFC1123)
-			}
-			a.Message = "running"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "new":
-			a.Status = model.STATUS_PENDING
-			a.Message = "New Job"
-			err = p.db.UpdateAnalysis(a)
-		default: // May be "unknown", "deleted", "error" or other...
-			err = errors.New("Job state : " + state)
-			a.Status = model.STATUS_ERROR
-			log.Print("Job in unknown state: " + state)
-			p.db.UpdateAnalysis(a)
-			return
-		}
-		time.Sleep(30 * time.Second)
-		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
-			err = errors.New("Job timedout")
-			a.Status = model.STATUS_TIMEOUT
-			a.Message = "Time out: Job canceled"
-			log.Print("Job timedout")
-			p.db.UpdateAnalysis(a)
-			return
-		}
-	}
+	a.JobId = jobs[0]
+	p.db.UpdateAnalysis(a)
+	return
 }
 
-func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfileid string) (fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string, err error) {
+func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, alignfileid string) (err error) {
 	var jobs []string
-	var files map[string]string
-	var state string
 
-	tl := p.galaxy.NewToolLauncher(historyid, p.fasttreeid)
+	tl := p.galaxy.NewToolLauncher(a.GalaxyHistory, p.fasttreeid)
 	tl.AddFileInput("input", alignfileid, "hda")
 
 	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
@@ -415,108 +332,33 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, historyid, alignfile
 		return
 	}
 
-	// Now waits for the end of the execution
-	for {
-		if state, files, err = p.galaxy.CheckJob(jobs[0]); err != nil {
-			log.Print("Error while checking FastTree workflow status : " + err.Error())
-			return
-		}
-		switch state {
-		case "ok":
-			var ok bool
-			// fbp tree file
-			if fbptreeid, ok = files["output_tree"]; !ok {
-				err = errors.New("Error while getting support tree output file id of FastTree workflow")
-				log.Print(err.Error())
-				return
-			}
-			// tbe norm tree
-			if tbenormtreeid, ok = files["tbe_norm_tree"]; !ok {
-				err = errors.New("Error while getting raw distance tree output file id of FastTree workflow")
-				log.Print(err.Error())
-				return
-			}
-			// tbe raw tree
-			if tberawtreeid, ok = files["tbe_raw_tree"]; !ok {
-				err = errors.New("Error while getting raw distance tree output file id of FastTree workflow")
-				log.Print(err.Error())
-				return
-			}
-
-			// tbe logs
-			if tbelogid, ok = files["tbe_log"]; !ok {
-				err = errors.New("Error while getting tbe log file id FastTree workflow")
-				log.Print(err.Error())
-				return
-			}
-			a.End = time.Now().Format(time.RFC1123)
-			a.Message = "Finished"
-			err = p.db.UpdateAnalysis(a)
-			return
-		case "queued":
-			a.Status = model.STATUS_PENDING
-			a.Message = "queued"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "waiting":
-			a.Status = model.STATUS_PENDING
-			a.Message = "waiting"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "running":
-			a.Status = model.STATUS_RUNNING
-			if a.StartRunning == "" {
-				a.StartRunning = time.Now().Format(time.RFC1123)
-			}
-			a.Message = "running"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		case "new":
-			a.Status = model.STATUS_PENDING
-			a.Message = "New Job"
-			if err = p.db.UpdateAnalysis(a); err != nil {
-				log.Print("Problem updating job: " + err.Error())
-			}
-		default: // May be "unknown", "deleted", "error" or other...
-			err = errors.New("Job state : " + state)
-			a.Status = model.STATUS_ERROR
-			log.Print("Job in unknown state: " + state)
-			p.db.UpdateAnalysis(a)
-			return
-		}
-		time.Sleep(30 * time.Second)
-		if t, _ := a.TimedOut(time.Duration(p.timeout) * time.Second); t {
-			err = errors.New("Job timedout")
-			a.Status = model.STATUS_TIMEOUT
-			a.Message = "Time out: Job canceled"
-			log.Print("Job timedout")
-			p.db.UpdateAnalysis(a)
-			return
-		}
-	}
+	a.JobId = jobs[0]
+	p.db.UpdateAnalysis(a)
+	return
 }
 
 func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
-	var outcontent []byte
 	var reffileid string
 	var bootfileid string
 	var seqid string
-	var fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
 	var history golaxy.HistoryFullInfo
+
+	if p.stopping {
+		err = errors.New("Booster server is stopping, please try again in a few minutes")
+		log.Print("Error while submitting job : " + err.Error())
+		return
+	}
 
 	// We create an history
 	history, err = p.galaxy.CreateHistory("Booster History")
-	// And we delete the history
-	defer p.galaxy.DeleteHistory(history.Id)
 	if err != nil {
 		log.Print("Error while Creating History: " + err.Error())
 		return
 	}
 	log.Print("History: " + history.Id)
-	p.newHistory(a, history.Id)
+	a.GalaxyHistory = history.Id
+	p.db.UpdateAnalysis(a)
+
 	// If we have a sequence file, then we build the trees from it
 	// and compute supports using the PHYML-SMS oneclick workflow from galaxy
 	if a.SeqAlign != "" {
@@ -539,7 +381,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				log.Print("Error while Uploading reference sequence file: " + err.Error())
 				return
 			}
-			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitPhyML(a, history.Id, seqid); err != nil {
+			if err = p.submitPhyML(a, seqid); err != nil {
 				log.Print("Error while launching PhyML-SMS workflow : " + err.Error())
 				return
 			}
@@ -555,7 +397,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 				log.Print("Error while Uploading reference sequence file: " + err.Error())
 				return
 			}
-			if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitFastTree(a, history.Id, seqid); err != nil {
+			if err = p.submitFastTree(a, seqid); err != nil {
 				log.Print("Error while launching FastTree workflow : " + err.Error())
 				return
 			}
@@ -580,7 +422,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			return
 		}
 
-		if fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.submitBooster(a, history.Id, reffileid, bootfileid); err != nil {
+		if err = p.submitBooster(a, reffileid, bootfileid); err != nil {
 			log.Print("Error while launching Booster galaxy tool : " + err.Error())
 			return
 		}
@@ -590,10 +432,147 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		return
 	}
 
-	// And we download resulting files
-	if outcontent, err = p.galaxy.DownloadFile(history.Id, fbptreeid); err != nil {
+	return
+}
+
+// Keep track of currently running jobs.
+// In order to cancel them when the server stops
+func (p *GalaxyProcessor) newRunningJob(a *model.Analysis) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.runningJobs[a.Id] = a
+}
+
+func (p *GalaxyProcessor) rmRunningJob(a *model.Analysis) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	// we delete the history
+	if a.GalaxyHistory != "" {
+		p.galaxy.DeleteHistory(a.GalaxyHistory)
+	}
+	// And delete the job from the running jobs
+	delete(p.runningJobs, a.Id)
+}
+
+func (p *GalaxyProcessor) allRunningJobs() []*model.Analysis {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	v := make([]*model.Analysis, 0)
+	for _, value := range p.runningJobs {
+		v = append(v, value)
+	}
+	return v
+}
+
+func (p *GalaxyProcessor) CancelAnalyses() (err error) {
+	p.stopping = true
+	for _, a := range p.allRunningJobs() {
+		log.Print("Cancelling job : " + a.Id)
+		a.Status = model.STATUS_CANCELED
+		a.End = time.Now().Format(time.RFC1123)
+		a.Message = "Canceled after a server restart"
+		if err = p.db.UpdateAnalysis(a); err != nil {
+			log.Print(err)
+		}
+		p.rmRunningJob(a)
+	}
+	return
+}
+
+// Creates a new go routine that waits for
+// new jobs in the queue and launches them on Galaxy
+func (p *GalaxyProcessor) initJobLauncher() {
+	go func() {
+		for a := range p.queue {
+			if p.stopping {
+				break
+			}
+			log.Print(fmt.Sprintf("New analysis : id=%s", a.Id))
+			err := p.submitToGalaxy(a)
+			p.newRunningJob(a)
+			if err != nil {
+				log.Print("Error while submitting to galaxy: " + err.Error())
+				a.Status = model.STATUS_ERROR
+				a.End = time.Now().Format(time.RFC1123)
+				a.Message = err.Error()
+				p.rmRunningJob(a)
+				if err = p.db.UpdateAnalysis(a); err != nil {
+					log.Print("Problem updating job: " + err.Error())
+				}
+			}
+		}
+	}()
+}
+
+// Creates a new Go routine that monitors running jobs
+func (p *GalaxyProcessor) initJobMonitor() {
+	go func() {
+		var state, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string
+		var err error
+		for !p.stopping {
+			for _, job := range p.allRunningJobs() {
+				state, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid, err = p.checkJob(job)
+
+				if state == "error" || job.Status == model.STATUS_ERROR {
+					p.rmRunningJob(job)
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+						log.Print(err)
+					}
+				} else if state == "ok" {
+					if err = p.downloadResults(job, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid); err != nil {
+						job.Status = model.STATUS_ERROR
+						job.Message = err.Error()
+					} else {
+						job.Status = model.STATUS_FINISHED
+					}
+					p.rmRunningJob(job)
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+						log.Print(err)
+					}
+				} else if t, _ := job.TimedOut(time.Duration(p.timeout) * time.Second); t {
+					err = errors.New("Job timedout")
+					job.Status = model.STATUS_TIMEOUT
+					job.Message = "Time out: Job canceled"
+					log.Print("Job timedout")
+					p.rmRunningJob(job)
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+						log.Print(err)
+					}
+				} else if err != nil {
+					log.Print(fmt.Sprintf("Error while checking job %s : %s", job.Id, err))
+					time.Sleep(30 * time.Second)
+					continue
+				}
+
+				if err = p.db.UpdateAnalysis(job); err != nil {
+					log.Print("Problem updating job: " + err.Error())
+				}
+				time.Sleep(1 * time.Second)
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}()
+}
+
+func (p *GalaxyProcessor) restoreRunningJobs() {
+	an, err := p.db.GetRunningAnalyses()
+	if err != nil {
+		log.Print(err.Error())
+	} else {
+		log.Print(fmt.Sprintf("Restoring %d Galaxy jobs", len(an)))
+		for _, a := range an {
+			p.newRunningJob(a)
+		}
+	}
+}
+
+func (p *GalaxyProcessor) downloadResults(a *model.Analysis, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid string) (err error) {
+	var outcontent []byte
+
+	// We download resulting files
+	if outcontent, err = p.galaxy.DownloadFile(a.GalaxyHistory, fbptreeid); err != nil {
 		log.Print("Error while downloading fbp tree file: " + err.Error())
-		return
 	}
 	a.FbpTree = string(outcontent)
 
@@ -609,81 +588,23 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 		}
 	}
 
-	if outcontent, err = p.galaxy.DownloadFile(history.Id, tbenormtreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(a.GalaxyHistory, tbenormtreeid); err != nil {
 		log.Print("Error while downloading support file: " + err.Error())
 		return
 	}
 	a.TbeNormTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(history.Id, tberawtreeid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(a.GalaxyHistory, tberawtreeid); err != nil {
 		log.Print("Error while downloading avg dist tree file: " + err.Error())
 		return
 	}
 	a.TbeRawTree = string(outcontent)
 
-	if outcontent, err = p.galaxy.DownloadFile(history.Id, tbelogid); err != nil {
+	if outcontent, err = p.galaxy.DownloadFile(a.GalaxyHistory, tbelogid); err != nil {
 		log.Print("Error while downloading log file: " + err.Error())
 		return
 	}
 	a.TbeLogs = string(outcontent)
-
-	a.Status = model.STATUS_FINISHED
-	p.db.UpdateAnalysis(a)
-
-	return
-}
-
-// Keep track of currently running jobs.
-// In order to cancel them when the server stops
-func (p *GalaxyProcessor) newRunningJob(a *model.Analysis) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	p.runningJobs[a.Id] = a
-}
-
-// Keep track of currently running job galaxy histories.
-// In order to remove them when the server stops
-func (p *GalaxyProcessor) newHistory(a *model.Analysis, historyId string) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	p.runningHistories[a.Id] = historyId
-}
-
-func (p *GalaxyProcessor) rmRunningJob(a *model.Analysis) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	delete(p.runningHistories, a.Id)
-	delete(p.runningJobs, a.Id)
-}
-
-func (p *GalaxyProcessor) allRunningJobs() []*model.Analysis {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-	v := make([]*model.Analysis, 0)
-	for _, value := range p.runningJobs {
-		v = append(v, value)
-	}
-	return v
-}
-
-func (p *GalaxyProcessor) CancelAnalyses() (err error) {
-	for _, a := range p.allRunningJobs() {
-		log.Print("Cancelling job : " + a.Id)
-		a.Status = model.STATUS_CANCELED
-		a.End = time.Now().Format(time.RFC1123)
-		a.Message = "Canceled after a server restart"
-		if err = p.db.UpdateAnalysis(a); err != nil {
-			log.Print(err)
-		}
-		if historyid, ok := p.runningHistories[a.Id]; ok {
-			p.galaxy.DeleteHistory(historyid)
-		}
-		p.rmRunningJob(a)
-	}
-
 	return
 }
 

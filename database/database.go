@@ -34,4 +34,5 @@ type BoosterwebDB interface {
 	Disconnect() error
 	InitDatabase() error
 	DeleteOldAnalyses(days int) error
+	GetRunningAnalyses() (analyses []*model.Analysis, err error)
 }

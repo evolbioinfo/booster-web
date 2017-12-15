@@ -52,6 +52,7 @@ import (
 	"github.com/fredericlemoine/goalign/io/fasta"
 	"github.com/fredericlemoine/goalign/io/phylip"
 	"github.com/fredericlemoine/goalign/io/utils"
+	"github.com/fredericlemoine/gotree/io/newick"
 )
 
 const (
@@ -276,7 +277,7 @@ func initCleanKill() {
 	go func() {
 		for sig := range c {
 			log.Print(sig)
-			proc.CancelAnalyses()
+			//proc.CancelAnalyses()
 			if err := db.Disconnect(); err != nil {
 				log.Print(err)
 			}
@@ -449,6 +450,16 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 			log.Print(err)
 			return nil, err
 		}
+
+		if err = testNewickFile(treefile); err != nil {
+			err = errors.New("Reference tree : Newick format error")
+			return nil, err
+		}
+		if err = testNewickFile(boottreefile); err != nil {
+			err = errors.New("Bootstrap trees : Newick format error")
+			log.Print(err)
+			return nil, err
+		}
 	}
 
 	a.SeqAlign = seqalignfile
@@ -509,6 +520,23 @@ func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileH
 	} else {
 		err = errors.New("File to copy does not exist")
 		log.Print(err)
+	}
+	return
+}
+
+// Parses a given file as Newick and returns an error if an error occurs
+//
+// If it is a multi newick file (bootstrap trees for example), then will only test
+// the first tree.
+func testNewickFile(file string) (err error) {
+	var treereader *bufio.Reader
+	var treefile *os.File
+	if treefile, treereader, err = utils.GetReader(file); err != nil {
+		return
+	}
+	defer treefile.Close()
+	if _, err = newick.NewParser(treereader).Parse(); err != nil {
+		return
 	}
 	return
 }

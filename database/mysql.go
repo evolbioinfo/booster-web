@@ -60,6 +60,8 @@ type dbanalysis struct {
 	tberawtree    string `mysql-type:"longtext"`                                        // tree with raw tbe supports in the form <id|avg_dist|depth> as branch names
 	tbelogs       string `mysql-type:"longtext"`                                        // tbe log file
 	status        int    `mysql-type:"int" mysql-default:"-1"`                          // Status of the analysis
+	jobid         string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Galaxy or local Job id
+	galaxyhistory string `mysql-type:"varchar(100)" mysql-default:"''"`                 // Galaxy History
 	message       string `mysql-type:"longtext"`                                        // Optional message
 	nboot         int    `mysql-type:"int" mysql-default:"0"`                           // number of bootstrap trees
 	startpending  string `mysql-type:"varchar(100)" mysql-default:"''"`                 // date of job being submited
@@ -103,7 +105,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if db.db == nil {
 		return nil, errors.New("Database not opened")
 	}
-	rows, err := db.db.Query("SELECT id,email,seqalign,nbootrep,alignfile,alignalphabet,workflow,alignnbseq,alignlength,reffile,bootfile,fbptree,tbenormtree,tberawtree,tbelogs,status,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
+	rows, err := db.db.Query("SELECT id,email,seqalign,nbootrep,alignfile,alignalphabet,workflow,alignnbseq,alignlength,reffile,bootfile,fbptree,tbenormtree,tberawtree,tbelogs,status,jobid,galaxyhistory,message,nboot,startpending,startrunning,end FROM analysis WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +115,7 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	if rows.Next() {
 		if err := rows.Scan(&dban.id, &dban.email, &dban.seqalign, &dban.nbootrep,
 			&dban.alignfile, &dban.alignalphabet, &dban.workflow, &dban.alignnbseq, &dban.alignlength, &dban.reffile, &dban.bootfile,
-			&dban.fbptree, &dban.tbenormtree, &dban.tberawtree, &dban.tbelogs, &dban.status,
+			&dban.fbptree, &dban.tbenormtree, &dban.tberawtree, &dban.tbelogs, &dban.status, &dban.jobid, &dban.galaxyhistory,
 			&dban.message, &dban.nboot, &dban.startpending, &dban.startrunning, &dban.end); err != nil {
 			return nil, err
 		}
@@ -142,6 +144,8 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 		TbeRawTree:    dban.tberawtree,
 		TbeLogs:       dban.tbelogs,
 		Status:        dban.status,
+		JobId:         dban.jobid,
+		GalaxyHistory: dban.galaxyhistory,
 		Message:       dban.message,
 		Nboot:         dban.nboot,
 		StartPending:  dban.startpending,
@@ -152,6 +156,67 @@ func (db *MySQLBoosterwebDB) GetAnalysis(id string) (*model.Analysis, error) {
 	return a, nil
 }
 
+// Get only analyses that are running (1) or pending (0)
+func (db *MySQLBoosterwebDB) GetRunningAnalyses() (analyses []*model.Analysis, err error) {
+	if db.db == nil {
+		return nil, errors.New("Database not opened")
+	}
+	analyses = make([]*model.Analysis, 0)
+	var rows *sql.Rows
+	query := `SELECT id,email,seqalign,nbootrep,alignfile,
+                         alignalphabet,workflow,alignnbseq,alignlength,reffile,bootfile,
+                         fbptree,tbenormtree,tberawtree,tbelogs,status,jobid,galaxyhistory,
+                         message,nboot,startpending,startrunning,end 
+                  FROM analysis 
+                  WHERE status=0 or status=1`
+	if rows, err = db.db.Query(query); err != nil {
+		return
+	}
+	defer rows.Close()
+
+	dban := dbanalysis{}
+	for rows.Next() {
+		if err = rows.Scan(&dban.id, &dban.email, &dban.seqalign, &dban.nbootrep,
+			&dban.alignfile, &dban.alignalphabet, &dban.workflow, &dban.alignnbseq, &dban.alignlength, &dban.reffile, &dban.bootfile,
+			&dban.fbptree, &dban.tbenormtree, &dban.tberawtree, &dban.tbelogs, &dban.status, &dban.jobid, &dban.galaxyhistory,
+			&dban.message, &dban.nboot, &dban.startpending, &dban.startrunning, &dban.end); err != nil {
+			return
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		a := &model.Analysis{
+			Id:            dban.id,
+			EMail:         dban.email,
+			SeqAlign:      dban.seqalign,
+			NbootRep:      dban.nbootrep,
+			Alignfile:     dban.alignfile,
+			AlignAlphabet: dban.alignalphabet,
+			Workflow:      dban.workflow,
+			AlignNbSeq:    dban.alignnbseq,
+			AlignLength:   dban.alignlength,
+			Reffile:       dban.reffile,
+			Bootfile:      dban.bootfile,
+			FbpTree:       dban.fbptree,
+			TbeNormTree:   dban.tbenormtree,
+			TbeRawTree:    dban.tberawtree,
+			TbeLogs:       dban.tbelogs,
+			Status:        dban.status,
+			JobId:         dban.jobid,
+			GalaxyHistory: dban.galaxyhistory,
+			Message:       dban.message,
+			Nboot:         dban.nboot,
+			StartPending:  dban.startpending,
+			StartRunning:  dban.startrunning,
+			End:           dban.end,
+		}
+		analyses = append(analyses, a)
+	}
+
+	return
+}
+
 /* Update an anlysis or insert it if it does not exist */
 func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 	log.Print("Mysql database : Insert or update analysis " + a.Id)
@@ -160,12 +225,12 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		return errors.New("Database not opened")
 	}
 	query := `INSERT INTO analysis 
-                    (id, email, seqalign, nbootrep, alignfile, alignalphabet,workflow, alignnbseq, alignlength, reffile, bootfile, fbptree,tbenormtree, tberawtree, tbelogs, status, message, nboot, startpending, startrunning , end) 
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
+                    (id, email, seqalign, nbootrep, alignfile, alignalphabet,workflow, alignnbseq, alignlength, reffile, bootfile, fbptree,tbenormtree, tberawtree, tbelogs, status, jobid, galaxyhistory, message, nboot, startpending, startrunning , end) 
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
                   ON DUPLICATE KEY UPDATE alignfile=values(alignfile),alignalphabet=values(alignalphabet),fbptree=values(fbptree), 
                                           tbenormtree=values(tbenormtree), tberawtree=values(tberawtree), tbelogs=values(tbelogs), 
-                                          status=values(status),workflow=values(workflow), alignnbseq=values(alignnbseq), 
-                                          alignLength=values(alignLength), message=values(message), nboot=values(nboot),
+                                          status=values(status),jobid=values(jobid),galaxyhistory=values(galaxyhistory),workflow=values(workflow), 
+                                          alignnbseq=values(alignnbseq), alignLength=values(alignLength), message=values(message), nboot=values(nboot),
                                           startpending=values(startpending), startrunning=values(startrunning), end=values(end)`
 	_, err := db.db.Exec(
 		query,
@@ -185,6 +250,8 @@ func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
 		a.TbeRawTree,
 		a.TbeLogs,
 		a.Status,
+		a.JobId,
+		a.GalaxyHistory,
 		a.Message,
 		a.Nboot,
 		a.StartPending,
@@ -281,7 +348,7 @@ func (db *MySQLBoosterwebDB) DeleteOldAnalyses(days int) (err error) {
 		return errors.New("Database not opened")
 	}
 
-	query := `UPDATE analysis set alignfile='',fbptree='', tbenormtree='', tberawtree='',tbelogs='',status=6 where STR_TO_DATE(replace(replace(end,"CET",""),"CEST",""), '%a, %d %b %Y %H:%i:%S')<DATE_SUB(CURDATE(), INTERVAL `
+	query := `UPDATE analysis set alignfile='',fbptree='', tbenormtree='', tberawtree='',tbelogs='',status=6 where status<>0 and status<>1 and STR_TO_DATE(replace(replace(end,"CET",""),"CEST",""), '%a, %d %b %Y %H:%i:%S')<DATE_SUB(CURDATE(), INTERVAL `
 	query += fmt.Sprintf("%d", days) + " DAY);"
 
 	_, err = db.db.Exec(query)
