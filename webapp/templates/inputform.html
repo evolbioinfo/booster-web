@@ -31,9 +31,8 @@ BOOSTER - Run
 {{ define "content"}}
 
 <form action="/run" method="POST" enctype="multipart/form-data">
-  {{if .GalaxyProcessor }}
   <fieldset class="form-group">
-    <legend class="fieldset-border">OPTION 1 - Input: Reference and bootstrap trees, already inferred</legend>
+    <legend class="fieldset-border">{{if .GalaxyProcessor }}OPTION 1 - {{ end }}Input: Reference and bootstrap trees, already inferred</legend>
     <div>
       <label for="reftree">Reference tree</label>
       <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />
@@ -45,6 +44,7 @@ BOOSTER - Run
       <small id="bootTreeHelp" class="form-text text-muted">Bootstrap trees: All bootstrap trees must be in one single file, in newick format, and possibly gzipped (extension .gz only)</small>
     </div>
   </fieldset>
+  {{if .GalaxyProcessor }}
   <fieldset class="form-group">
     <legend class="fieldset-border">OPTION 2 - Input: Multiple sequence alignment</legend>
     <div>
