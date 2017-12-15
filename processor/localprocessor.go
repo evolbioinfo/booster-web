@@ -295,10 +295,10 @@ func (p *LocalProcessor) computeSupport(supporter support.Supporter, a *model.An
 
 		a.TbeLogs = string(dat)
 		a.TbeNormTree = refTree.Newick()
-		a.Message = "Finished TBE"
+		a.Message = "Finished"
 	} else {
 		a.FbpTree = refTree.Newick()
-		a.Message = "Finished FBP"
+		a.Message = "Finished"
 	}
 
 	return
