@@ -32,26 +32,26 @@ BOOSTER - Run
 
 <form action="/run" method="POST" enctype="multipart/form-data">
   <fieldset class="form-group">
-    <legend class="fieldset-border">{{if .GalaxyProcessor }}OPTION 1 - {{ end }}Input: Reference and bootstrap trees, already inferred</legend>
+    <legend class="fieldset-border">{{if .GalaxyProcessor }}OPTION 1 - {{ end }}Input: reference and bootstrap trees already inferred</legend>
     <div>
       <label for="reftree">Reference tree</label>
       <input type="file" class="form-control-file" id="reftree" aria-describedby="refTreeHelp" name="reftree" />
-      <small id="refTreeHelp" class="form-text text-muted">Reference Tree: The tree must be in Newick format and possibly gzipped (extension .gz only)</small>
+      <small id="refTreeHelp" class="form-text text-muted">Reference Tree: the tree must be in Newick format and may be gzipped (.gz extension only)</small>
     </div>
     <div>
       <label for="boottrees">Bootstrap trees</label>
       <input type="file" class="form-control-file" id="boottrees" aria-describedby="bootTreeHelp" name="boottrees" />
-      <small id="bootTreeHelp" class="form-text text-muted">Bootstrap trees: All bootstrap trees must be in one single file, in newick format, and possibly gzipped (extension .gz only)</small>
+      <small id="bootTreeHelp" class="form-text text-muted">Bootstrap trees: all bootstrap trees must be in one single file, in Newick format, and may be gzipped (.gz extension only)</small>
     </div>
   </fieldset>
   {{if .GalaxyProcessor }}
   <fieldset class="form-group">
-    <legend class="fieldset-border">OPTION 2 - Input: Multiple sequence alignment</legend>
+    <legend class="fieldset-border">OPTION 2 - Input: multiple sequence alignment</legend>
     <div>
       <label for="refalign">Input Sequences</label>
       <input type="file" class="form-control-file" id="refalign" aria-describedby="refAlignHelp" name="refalign" />
-      <small id="refAlignHelp" class="form-text text-muted">Input: Sequence alignment (Fasta/Phylip/Nexus format, possibly gzipped with extension .gz only).
-	Two Galaxy workflows are available to infer reference and bootstrap trees: PhyML-SMS (<5OO taxa and <5,000 sites), which first performs model selection, and then infer the trees; FastTree (default option, GTR+Gamma with DNA, and LG+Gamma with proteins), which is applicable to MSAs containing up to 3000 taxa and 10.000 sites. For larger datasets you have to use previous option, or download <a href="https://github.com/evolbioinfo/booster/">BOOSTER</a> on your computer.
+      <small id="refAlignHelp" class="form-text text-muted">Input: sequence alignment (Fasta/Phylip/Nexus format, may be gzipped with .gz extension only).
+	Two Galaxy workflows are available to infer reference and bootstrap trees: PhyML-SMS (<5OO taxa and <5,000 sites), which first performs model selection and then infers the trees; and FastTree (default option, GTR+Gamma with DNA, and LG+Gamma with proteins), which is applicable to MSAs containing up to 3,000 taxa and 10,000 sites. For larger datasets you must use the latter option, or download <a href="https://github.com/evolbioinfo/booster/">BOOSTER</a> on your computer.
     </div>
     <div>
       <label for="nboot">Number of Bootstrap replicates (<span id="nboottext"></span>)</label>
@@ -75,17 +75,17 @@ BOOSTER - Run
 	<option value="PhyML-SMS" selected>PhyML-SMS (slower, for small/medium datasets)</option>
 	<option value="FastTree">FastTree (faster, for large datasets)</option>
       </select>
-      <small id="workflowHelp" class="form-text text-muted">Choose the phylogenetic workflow to run: 1) PhyML-SMS or 2) FastTree. These workflows are installed and launched on the Instut Pasteur <a href="https://galaxy.pasteur.fr/">Galaxy</a> server.</small>
+      <small id="workflowHelp" class="form-text text-muted">Choose the phylogenetic workflow to run: (1) PhyML-SMS or (2) FastTree. These workflows are installed and launched on the Instut Pasteur <a href="https://galaxy.pasteur.fr/">Galaxy</a> server.</small>
     </div>
   </fieldset>
   {{ end }}
   {{if .EmailNotification }}
   <fieldset class="form-group">
-    <legend class="fieldset-border">In any case</legend>
+    <legend class="fieldset-border">In all cases</legend>
     <div>
       <label for="email">E-Mail</label>
       <input id="email" name="email" class="form-control" type="text" aria-describedby="emailHelp"/>
-      <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you want to be notified as soon as the job is finished</small>
+      <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you would like to be notified when the job is finished.</small>
     </div>
   </fieldset>
   {{ end }}
