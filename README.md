@@ -11,23 +11,15 @@ To compile BOOSTER-WEB, you must [download](https://golang.org/dl/) and [install
 Then you just have to type :
 ```
 go get github.com/fredericlemoine/booster-web/
+go get -u github.com/golang/dep/cmd/dep
 ```
+
 This will download BOOSTER-WEB sources from github, and its dependencies.
-
-If you cloned the repository and want to install dependencies manually:
-
-```bash
-go get github.com/jteeuwen/go-bindata/...
-go get github.com/elazarl/go-bindata-assetfs/...
-go get github.com/dgrijalva/jwt-go
-go get github.com/fredericlemoine/golaxy
-go get github.com/fredericlemoine/gotree
-go get github.com/go-sql-driver/mysql
-```
 
 You can then build BOOSTER-WEB with:
 ```
 cd $GOPATH/src/github.com/fredericlemoine/booster-web/
+dep ensure
 make
 ```
 
