@@ -1,4 +1,6 @@
 # BOOSTER-WEB: Web interface to [BOOSTER](http://booster.c3bi.pasteur.fr)
+![build](https://travis-ci.org/fredericlemoine/booster-web.svg?branch=master)
+
 This interface presents informations about BOOSTER program, and allows to run BOOSTER easily.
 
 # Installing BOOSTER-WEB
