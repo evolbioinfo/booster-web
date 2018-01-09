@@ -1,3 +1,4 @@
+DEP_EXECUTABLE := dep
 GO_EXECUTABLE := go
 VERSION := $(shell git describe --abbrev=10 --dirty --always --tags)
 DIST_DIRS := find * -type d -exec
@@ -6,7 +7,10 @@ PACKAGE:=github.com/fredericlemoine/booster-web
 NAME := booster-web
 ASSETFS=(static/bindata_assetfs.go templates/bindata_templates.go)
 VPATH=./static/
-all: build install
+all: dep build install
+
+dep:
+	${DEP_EXECUTABLE} ensure
 
 build: assetfs
 	${GO_EXECUTABLE} build -o ${NAME} -ldflags "-X ${VERSION_PACKAGE}=${VERSION}" ${PACKAGE}
@@ -29,7 +33,7 @@ test:
 .PHONY: assetfs deploy deploydir deploywinamd deploywin386 deploylinuxamd deploylinux386 deploydarwinamd deploydarwin386
 
 
-deploy: deploywinamd deploywin386 deploylinuxamd deploylinux386 deploydarwinamd deploydarwin386
+deploy: dep deploywinamd deploywin386 deploylinuxamd deploylinux386 deploydarwinamd deploydarwin386
 	tar -czvf deploy/${VERSION}.tar.gz --directory="deploy" ${VERSION}
 
 deploydir:
