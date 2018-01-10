@@ -34,7 +34,7 @@ import (
 var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 type Notifier interface {
-	Notify(status string, analysisId string, workflow string, email string) error
+	Notify(status string, analysisId string, runName string, workflow string, email string) error
 }
 
 type EmailNotifier struct {
@@ -63,12 +63,12 @@ func NewNullNotifier() (notifier *NullNotifier) {
 	return &NullNotifier{}
 }
 
-func (n *NullNotifier) Notify(status string, analysisId string, workflow string, email string) (err error) {
+func (n *NullNotifier) Notify(status string, analysisId string, runName string, workflow string, email string) (err error) {
 	return
 }
 
 // Workflow may be FastTree or PhyML-SMS
-func (n *EmailNotifier) Notify(status string, analysisId string, workflow string, email string) (err error) {
+func (n *EmailNotifier) Notify(status string, analysisId string, runName string, workflow string, email string) (err error) {
 	// Connect to the remote SMTP server.
 	if email != "" && n.server != "" && n.user != "" && n.pass != "" && n.sender != "" && validateEmail(email) {
 		ref := "Lemoine, F., Entfellner, J. B. D., Wilkinson, E., Correia, D., Davila Felipe, M., De Oliveira, T., & Gascuel, O. (2017). Boosting Felsenstein Phylogenetic Bootstrap. bioRxiv."
@@ -83,8 +83,13 @@ func (n *EmailNotifier) Notify(status string, analysisId string, workflow string
 			ref = "[1] " + ref
 		}
 
+		runnamestr := " "
+		if runName != "" {
+			runnamestr = fmt.Sprintf(" (run name: %s) ", runName)
+		}
+
 		auth := smtp.PlainAuth("", n.user, n.pass, n.server)
-		body := fmt.Sprintf("Dear booster-web user, \n\nYour job (%s) is done (status : '%s').\nResults are available at the following page:\n%s/%s\n\nBest regards,\n\nThe BOOSTER-WEB team\nEvolutionary Biology Unit - USR 3756 Institut Pasteur - CNRS\nhttps://research.pasteur.fr/en/team/evolutionary-bioinformatics\n\n%s", jobstr, status, n.resulturl, analysisId, ref)
+		body := fmt.Sprintf("Dear booster-web user, \n\nYour job %s%sis done (status : '%s').\nResults are available at the following page:\n%s/%s\n\nBest regards,\n\nThe BOOSTER-WEB team\nEvolutionary Biology Unit - USR 3756 Institut Pasteur - CNRS\nhttps://research.pasteur.fr/en/team/evolutionary-bioinformatics\n\n%s", jobstr, runnamestr, status, n.resulturl, analysisId, ref)
 		msg := fmt.Sprintf("From: %s\nTo: %s\nSubject: booster-web results\n\n%s", n.sender, email, body)
 
 		err = smtp.SendMail(fmt.Sprintf("%s:%d", n.server, n.port), auth, n.sender, []string{email}, []byte(msg))

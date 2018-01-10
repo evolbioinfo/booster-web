@@ -517,7 +517,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 
 				if state == "error" || job.Status == model.STATUS_ERROR {
 					p.rmRunningJob(job)
-					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.RunName, job.WorkflowStr(), job.EMail); err != nil {
 						log.Print(err)
 					}
 				} else if state == "ok" {
@@ -528,7 +528,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 						job.Status = model.STATUS_FINISHED
 					}
 					p.rmRunningJob(job)
-					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.RunName, job.WorkflowStr(), job.EMail); err != nil {
 						log.Print(err)
 					}
 				} else if t, _ := job.TimedOut(time.Duration(p.timeout) * time.Second); t {
@@ -537,7 +537,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 					job.Message = "Time out: Job canceled"
 					log.Print("Job timedout")
 					p.rmRunningJob(job)
-					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.WorkflowStr(), job.EMail); err != nil {
+					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.RunName, job.WorkflowStr(), job.EMail); err != nil {
 						log.Print(err)
 					}
 				} else if err != nil {
