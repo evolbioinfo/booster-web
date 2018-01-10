@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -604,7 +605,7 @@ func (p *GalaxyProcessor) downloadResults(a *model.Analysis, fbptreeid, tbenormt
 		log.Print("Error while downloading log file: " + err.Error())
 		return
 	}
-	a.TbeLogs = string(outcontent)
+	a.TbeLogs = cleanTBELogs(string(outcontent))
 	return
 }
 
@@ -619,6 +620,16 @@ func estimateFastTreeRunStats(a *model.Analysis) (mem, time float64) {
 	mem = 2872 +
 		0.003412*(math.Pow(float64(a.AlignNbSeq), 1.5)+float64(a.AlignNbSeq)*float64(a.AlignLength)*alphabetsize)
 	time *= float64(a.NbootRep)
+	return
+}
+
+func cleanTBELogs(log string) (cleanlog string) {
+	ioregexp := regexp.MustCompile("(?m)^.*(Input|Output|Boot|Date|Seed|CPUs|End).*:.*$[\r\n]+")
+	headregexp := regexp.MustCompile("(?m)^Taxon : tIndex$")
+	titleregexp := regexp.MustCompile("(?m)^BOOSTER Support$[\r\n]+")
+	cleanlog = ioregexp.ReplaceAllString(log, "")
+	cleanlog = headregexp.ReplaceAllString(cleanlog, "Taxon : Instability")
+	cleanlog = titleregexp.ReplaceAllString(cleanlog, "")
 	return
 }
 
