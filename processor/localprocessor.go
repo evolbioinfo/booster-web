@@ -293,7 +293,7 @@ func (p *LocalProcessor) computeSupport(supporter support.Supporter, a *model.An
 			return
 		}
 
-		a.TbeLogs = string(dat)
+		a.TbeLogs = cleanTBELogs(string(dat))
 		a.TbeNormTree = refTree.Newick()
 		a.Message = "Finished"
 	} else {
