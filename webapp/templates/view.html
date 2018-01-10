@@ -46,12 +46,14 @@ BOOSTER - Results {{.Id}}
   <div class="panel-body">
     <ul>
       <li>ID: {{.Id}}</li>
+      {{with .RunName}}<li>Name: {{.}}</li>{{end}}
       <li>Status: {{.StatusStr}}</li>
       <li>Submited on: {{.StartPending}}</li>
       <li>Started on: {{.StartRunning}}</li>
       <li>Ended on: {{.End}}</li>
       <li>Total time elapsed: {{ .RunTime }}</li>
       <li>Workflow: {{ .WorkflowStr }}</li>
+      <li>{{if (ne .SeqAlign "")}} Input file: {{.SeqAlignName}} {{else}}Input files: <ul><li>Reference tree: {{.ReffileName}}</li><li>Bootstrap trees: {{.BootfileName}}</li></ul>{{end}}</li>
       {{if (or (eq .Workflow 8) (eq .Workflow 9)) }}
       <li>#Bootstrap trees to build: {{ .NbootRep }}</li>
       {{ end }}
@@ -82,6 +84,7 @@ BOOSTER - Results {{.Id}}
 	<a class="label label-info" onclick="downloadLogs({{.Id}})">Download logs</a>
       </li>
     </ul>
+    Go to <a href="help">help</a> for information on result file formats and content.
   </div>
 </div>
 

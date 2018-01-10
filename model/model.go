@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 )
@@ -51,19 +52,21 @@ const (
 )
 
 type Analysis struct {
-	Id    string `json:"id"` // sha256 sum of reftree and boottree files
-	EMail string `json:"-"`  // EMail of the job creator, may be empty string ""
-	// Next attributes are for users who want to build the trees using PhyML-SMS of galaxy
-	SeqAlign      string `json:"-"`        // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
-	NbootRep      int    `json:"nbootrep"` // Number of bootstrap replicates given by the user to build the bootstrap trees
-	Alignfile     string `json:"align"`    // Alignment result file returned by galaxy workflow if users gave a input sequence file
-	AlignAlphabet int    `json:"alphabet"` // Alignment alphabet: 0: aa | 1 : nt
-	Workflow      int    `json:"workflow"` // The galaxy workflow that has been run. 8:PHYML-SMS, 9: FASTTREE
-	AlignNbSeq    int    `json:"nbseqs"`   // Number of sequences in the given alignment
-	AlignLength   int    `json:"length"`   // Length of the given alignment
+	Id      string `json:"id"`      // sha256 sum of reftree and boottree files
+	RunName string `json:"runname"` // Optional user given name of the run
+	EMail   string `json:"-"`       // EMail of the job creator, may be empty string ""
 
-	Reffile       string `json:"-"`            // reftree original file (to be able to close it)
-	Bootfile      string `json:"-"`            // bootstrap original file (to be able to close it)
+	// Next attributes are for users who want to build the trees using PhyML-SMS of galaxy
+	SeqAlign      string `json:"alignfile"` // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
+	NbootRep      int    `json:"nbootrep"`  // Number of bootstrap replicates given by the user to build the bootstrap trees
+	Alignfile     string `json:"align"`     // Alignment result file returned by galaxy workflow if users gave a input sequence file
+	AlignAlphabet int    `json:"alphabet"`  // Alignment alphabet: 0: aa | 1 : nt
+	Workflow      int    `json:"workflow"`  // The galaxy workflow that has been run. 8:PHYML-SMS, 9: FASTTREE
+	AlignNbSeq    int    `json:"nbseqs"`    // Number of sequences in the given alignment
+	AlignLength   int    `json:"length"`    // Length of the given alignment
+
+	Reffile       string `json:"reftreefile"`  // reftree original file path
+	Bootfile      string `json:"boottreefile"` // bootstrap original file path
 	FbpTree       string `json:"fbptree"`      // Tree with Fbp supports
 	TbeNormTree   string `json:"tbenormtree"`  // resulting newick tree with support
 	TbeRawTree    string `json:"tberawtree"`   // result tree with raw <id|avg_dist|depth> as branch names
@@ -256,4 +259,16 @@ func (a *Analysis) OlderThan(agelimit time.Duration) (old bool, err error) {
 	}
 	old = agelimit != 0 && time.Now().After(end.Add(agelimit))
 	return
+}
+
+func (a *Analysis) ReffileName() string {
+	return path.Base(a.Reffile)
+}
+
+func (a *Analysis) BootfileName() string {
+	return path.Base(a.Bootfile)
+}
+
+func (a *Analysis) SeqAlignName() string {
+	return path.Base(a.SeqAlign)
 }

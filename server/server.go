@@ -383,7 +383,7 @@ func initEmailNotification(cfg config.Provider) {
 func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 	reffile multipart.File, refheader *multipart.FileHeader,
 	bootfile multipart.File, bootheader *multipart.FileHeader,
-	email string, nbootrep int, workflow string) (a *model.Analysis, err error) {
+	email, runname string, nbootrep int, workflow string) (a *model.Analysis, err error) {
 
 	var uuid string
 	var dir string
@@ -394,6 +394,7 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 	a = model.NewAnalysis()
 	a.Id = uuid
 	a.EMail = email
+	a.RunName = runname
 	a.NbootRep = nbootrep
 	a.Status = model.STATUS_PENDING
 	a.Nboot = 0

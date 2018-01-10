@@ -206,6 +206,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	var nbootrep string
 	var workflow string
 	var email string
+	var runname string
 
 	parserr := r.ParseMultipartForm(32 << 20)
 	if parserr != nil {
@@ -237,7 +238,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		defer boottree.Close()
 	}
 	email = r.FormValue("email")
-
+	runname = r.FormValue("runname")
 	workflow = r.FormValue("workflow")
 
 	nbootrep = r.FormValue("nboot")
@@ -250,7 +251,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		nbootint = 1000
 	}
 
-	if a, err = newAnalysis(refalign, refalignhandler, reftree, refhandler, boottree, boothandler, email, int(nbootint), workflow); err != nil {
+	if a, err = newAnalysis(refalign, refalignhandler, reftree, refhandler, boottree, boothandler, email, runname, int(nbootint), workflow); err != nil {
 		err = errors.New("Error while creating a new analysis: " + err.Error())
 		io.LogError(err)
 		errorHandler(w, r, err)

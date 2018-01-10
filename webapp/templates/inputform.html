@@ -79,18 +79,22 @@ BOOSTER - Run
     </div>
   </fieldset>
   {{ end }}
-  {{if .EmailNotification }}
   <fieldset class="form-group">
     <legend class="fieldset-border">In all cases</legend>
+    {{if .EmailNotification }}
     <div>
       <label for="email">E-Mail</label>
       <input id="email" name="email" class="form-control" type="text" aria-describedby="emailHelp"/>
       <small id="emailHelp" class="form-text text-muted">Enter your e-mail if you would like to be notified when the job is finished.</small>
     </div>
+    {{ end }}
+    <div>
+      <label for="runname">Run name</label>
+      <input id="runname" name="runname" class="form-control" type="text" aria-describedby="runnameHelp"/>
+      <small id="runnameHelp" class="form-text text-muted">Enter a run name (optionnal) if you would like to remember it more easily.</small>
+    </div>
   </fieldset>
-  {{ end }}
- 
-  <button type="submit" class="btn btn-primary">Run</button>
+   <button type="submit" class="btn btn-primary">Run</button>
 </form>
 
 {{ end }}
