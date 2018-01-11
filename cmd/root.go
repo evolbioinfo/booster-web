@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/fredericlemoine/booster-web/server"
 	"github.com/spf13/cobra"
@@ -25,6 +27,7 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		rand.Seed(time.Now().UnixNano())
 		server.InitServer(viper.GetViper())
 	},
 }
