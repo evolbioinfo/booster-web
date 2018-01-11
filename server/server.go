@@ -181,8 +181,9 @@ func InitServer(cfg config.Provider) {
 	http.HandleFunc("/logout", validateHtml(logout))                         /* Handler for logout */
 
 	/* Api handlers */
-	http.HandleFunc("/api/analysis/", validateApi(makeApiHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
-	http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))  /* Handler for returning a tree image */
+	http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
+	http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))          /* Handler for returning a tree image */
+	http.HandleFunc("/api/randrunname", validateApi(makeApiHandler(apiRandNameGeneratorHandler)))
 
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.FileServer(static.AssetFS()))

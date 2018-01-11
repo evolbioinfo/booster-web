@@ -90,7 +90,12 @@ BOOSTER - Run
     {{ end }}
     <div>
       <label for="runname">Run name</label>
-      <input id="runname" name="runname" class="form-control" type="text" aria-describedby="runnameHelp"/>
+      <div class="input-group">
+	<input id="runname" name="runname" class="form-control" type="text" aria-describedby="runnameHelp"/>
+	<span class="input-group-btn">
+	  <a class="btn btn-info btn-sm" id="runnamebutton" href="#" role="button">Random Name</a>
+	</span>
+      </div>
       <small id="runnameHelp" class="form-text text-muted">Enter a run name (optionnal) if you would like to remember it more easily.</small>
     </div>
   </fieldset>

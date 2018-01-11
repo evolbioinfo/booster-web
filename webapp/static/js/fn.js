@@ -23,6 +23,19 @@ $( document ).ready(function() {
     timer=$('meta[http-equiv=refresh]').attr("content");
     timerfunc();
     setInterval(timerfunc, 1000);
+
+    $("#runnamebutton").click(function(event) {
+	event.preventDefault();
+	$.ajax({
+	    url: "/api/randrunname",
+	    dataType: 'text',
+ 	    async: true,
+	    success: function(data) {
+		var runname = data;
+		$("#runname").val(runname);
+	    }
+	});
+    });
 });
 
 function timerfunc(){

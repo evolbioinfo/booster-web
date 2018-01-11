@@ -38,6 +38,7 @@ import (
 	"github.com/fredericlemoine/booster-web/io"
 	"github.com/fredericlemoine/booster-web/model"
 	"github.com/fredericlemoine/booster-web/templates"
+	"github.com/fredericlemoine/booster-web/utils"
 	"github.com/fredericlemoine/gotree/draw"
 	"github.com/fredericlemoine/gotree/io/newick"
 	"github.com/fredericlemoine/gotree/upload"
@@ -355,6 +356,11 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse
 	}
 }
 
+func apiRandNameGeneratorHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "%s", generateRunName())
+}
+
 var validPath = regexp.MustCompile("^/(view|itol)/([-a-zA-Z0-9]+)$")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
@@ -385,11 +391,11 @@ func makeRawNormHandler(fn func(http.ResponseWriter, *http.Request, string, bool
 	}
 }
 
-var validApiPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)$")
+var validApiAnalysisPath = regexp.MustCompile("^/api/(analysis)/([-a-zA-Z0-9]+)$")
 
-func makeApiHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+func makeApiAnalysisHandler(fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := validApiPath.FindStringSubmatch(r.URL.Path)
+		m := validApiAnalysisPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
 			return
@@ -414,6 +420,21 @@ func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, flo
 	}
 }
 
+// URL of the form:
+// /api/randrunname
+var validApiPath = regexp.MustCompile("^/api/randrunname/{0,1}$")
+
+func makeApiHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := validApiPath.FindStringSubmatch(r.URL.Path)
+		if m == nil {
+			http.NotFound(w, r)
+			return
+		}
+		fn(w, r)
+	}
+}
+
 func getTemplate(name string) (*template.Template, error) {
 	t, ok := templatesMap[name]
 	if !ok {
@@ -430,4 +451,8 @@ func apiError(res http.ResponseWriter, err error) {
 	if err := json.NewEncoder(res).Encode(answer); err != nil {
 		io.LogError(err)
 	}
+}
+
+func generateRunName() string {
+	return utils.GenerateRandomName()
 }
