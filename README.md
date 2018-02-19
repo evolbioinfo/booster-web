@@ -1,18 +1,18 @@
 # BOOSTER-WEB: Web interface to [BOOSTER](http://booster.c3bi.pasteur.fr)
-![build](https://travis-ci.org/fredericlemoine/booster-web.svg?branch=master)
+![build](https://travis-ci.org/evolbioinfo/booster-web.svg?branch=master)
 
 This interface presents informations about BOOSTER program, and allows to run BOOSTER easily.
 
 # Installing BOOSTER-WEB
 ## Already compiled
-Download a release in the [release](https://github.com/fredericlemoine/booster-web/releases) section. You can directly run the executable for your platform.
+Download a release in the [release](https://github.com/evolbioinfo/booster-web/releases) section. You can directly run the executable for your platform.
 
 ## From source
 To compile BOOSTER-WEB, you must [download](https://golang.org/dl/) and [install](https://golang.org/doc/install) Go (version >=1.9) on your system.
 
 Then you just have to type :
 ```
-go get github.com/fredericlemoine/booster-web/
+go get github.com/evolbioinfo/booster-web/
 go get -u github.com/golang/dep/cmd/dep
 ```
 
@@ -20,7 +20,7 @@ This will download BOOSTER-WEB sources from github, and its dependencies.
 
 You can then build BOOSTER-WEB with:
 ```
-cd $GOPATH/src/github.com/fredericlemoine/booster-web/
+cd $GOPATH/src/github.com/evolbioinfo/booster-web/
 dep ensure
 make
 ```

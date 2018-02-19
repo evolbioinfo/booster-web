@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 package main
 
-import "github.com/fredericlemoine/booster-web/cmd"
+import "github.com/evolbioinfo/booster-web/cmd"
 
 func main() {
 	cmd.Execute()

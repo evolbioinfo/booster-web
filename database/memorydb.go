@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fredericlemoine/booster-web/model"
+	"github.com/evolbioinfo/booster-web/model"
 )
 
 type MemoryBoosterWebDB struct {

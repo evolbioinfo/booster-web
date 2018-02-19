@@ -116,7 +116,7 @@ After computingTBE and FBP using BOOSTER-WEB, you should obtain the following tr
 ## Installing a local version of the web interface
 
 The web interface was developped in [Go](https://golang.org/), and is thus executable on any platform (Linux, MacOS, and Windows).
-The only thing yo need to do is download the latest release of BOOSTER-WEB from [Github](https://github.com/fredericlemoine/booster-web/releases), and run it by clicking on the executable.
+The only thing yo need to do is download the latest release of BOOSTER-WEB from [Github](https://github.com/evolbioinfo/booster-web/releases), and run it by clicking on the executable.
 
 Then visit the following url: [http://localhost:8080](http://localhost:8080).
 

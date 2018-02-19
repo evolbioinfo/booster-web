@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fredericlemoine/booster-web/server"
+	"github.com/evolbioinfo/booster-web/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -33,9 +33,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fredericlemoine/booster-web/database"
-	"github.com/fredericlemoine/booster-web/model"
-	"github.com/fredericlemoine/booster-web/notification"
+	"github.com/evolbioinfo/booster-web/database"
+	"github.com/evolbioinfo/booster-web/model"
+	"github.com/evolbioinfo/booster-web/notification"
 	"github.com/fredericlemoine/goalign/align"
 	"github.com/fredericlemoine/golaxy"
 	"github.com/fredericlemoine/gotree/io/newick"

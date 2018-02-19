@@ -2,8 +2,8 @@ DEP_EXECUTABLE := dep
 GO_EXECUTABLE := go
 VERSION := $(shell git describe --abbrev=10 --dirty --always --tags)
 DIST_DIRS := find * -type d -exec
-VERSION_PACKAGE := github.com/fredericlemoine/booster-web/cmd.Version
-PACKAGE:=github.com/fredericlemoine/booster-web
+VERSION_PACKAGE := github.com/evolbioinfo/booster-web/cmd.Version
+PACKAGE:=github.com/evolbioinfo/booster-web
 NAME := booster-web
 ASSETFS=(static/bindata_assetfs.go templates/bindata_templates.go)
 VPATH=./static/

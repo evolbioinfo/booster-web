@@ -30,7 +30,7 @@ import (
 	"reflect"
 
 	"database/sql"
-	"github.com/fredericlemoine/booster-web/model"
+	"github.com/evolbioinfo/booster-web/model"
 	_ "github.com/go-sql-driver/mysql"
 )
 

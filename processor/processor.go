@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 package processor
 
 import (
-	"github.com/fredericlemoine/booster-web/model"
+	"github.com/evolbioinfo/booster-web/model"
 )
 
 type Processor interface {
