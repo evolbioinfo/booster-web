@@ -532,7 +532,7 @@ func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileH
 // the first tree.
 func testNewickFile(file string) (err error) {
 	var treereader *bufio.Reader
-	var treefile *os.File
+	var treefile goio.Closer
 	if treefile, treereader, err = utils.GetReader(file); err != nil {
 		return
 	}

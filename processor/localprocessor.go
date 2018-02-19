@@ -27,6 +27,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	goio "io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -239,7 +240,8 @@ func (p *LocalProcessor) CancelAnalyses() (err error) {
 
 func (p *LocalProcessor) computeSupport(supporter support.Supporter, a *model.Analysis, jobThreads int, tbe bool) (err error) {
 	var refTree *tree.Tree
-	var treeFile, tmpFile *os.File
+	var tmpFile *os.File
+	var treeFile goio.Closer
 	var treeReader *bufio.Reader
 	var treeChannel <-chan tree.Trees
 	var dat []byte
