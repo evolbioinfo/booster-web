@@ -524,8 +524,10 @@ func (p *GalaxyProcessor) initJobMonitor() {
 					if err = p.downloadResults(job, fbptreeid, tbenormtreeid, tberawtreeid, tbelogid); err != nil {
 						job.Status = model.STATUS_ERROR
 						job.Message = err.Error()
+						log.Print(err)
 					} else {
 						job.Status = model.STATUS_FINISHED
+						log.Print(fmt.Sprintf("Job %s finished successfully", job.Id))
 					}
 					p.rmRunningJob(job)
 					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.RunName, job.WorkflowStr(), job.EMail); err != nil {
@@ -535,7 +537,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 					err = errors.New("Job timedout")
 					job.Status = model.STATUS_TIMEOUT
 					job.Message = "Time out: Job canceled"
-					log.Print("Job timedout")
+					log.Print(fmt.Sprintf("Job %s timedout", job.Id))
 					p.rmRunningJob(job)
 					if err = p.notifier.Notify(job.StatusStr(), job.Id, job.RunName, job.WorkflowStr(), job.EMail); err != nil {
 						log.Print(err)
@@ -547,7 +549,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 				}
 
 				if err = p.db.UpdateAnalysis(job); err != nil {
-					log.Print("Problem updating job: " + err.Error())
+					log.Print(fmt.Sprintf("Problem updating job %s: %s"), job.Id, err.Error())
 				}
 				time.Sleep(1 * time.Second)
 			}

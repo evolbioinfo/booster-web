@@ -222,7 +222,7 @@ func (db *MySQLBoosterwebDB) GetRunningAnalyses() (analyses []*model.Analysis, e
 
 /* Update an anlysis or insert it if it does not exist */
 func (db *MySQLBoosterwebDB) UpdateAnalysis(a *model.Analysis) error {
-	log.Print("Mysql database : Insert or update analysis " + a.Id)
+	//log.Print("Mysql database : Insert or update analysis " + a.Id)
 
 	if db.db == nil {
 		return errors.New("Database not opened")
