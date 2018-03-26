@@ -144,6 +144,10 @@ Options:
 
 Complete information regarding installation and usage is available on the [GitHub page](https://github.com/evolbioinfo/booster).
 
+## Data
+
+The archive containing all data described in the paper can be downloaded from the [github page](https://github.com/evolbioinfo/booster-workflows/releases).
+
 ## <a name="note"></a>Note
 PhyML can also directly compute TBE supports (beta). To do this, you will need to download and install PhyML from its [github repository](https://github.com/stephaneguindon/phyml/):
 
