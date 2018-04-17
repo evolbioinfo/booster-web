@@ -201,7 +201,7 @@ func (p *GalaxyProcessor) checkJob(a *model.Analysis) (state, fbptreeid, tbenorm
 	if a.SeqAlign == "" {
 		fbptreename = "fbp_tree"
 	} else {
-		fbptreename = "output_tree"
+		fbptreename = "out_tree"
 	}
 	tbenormtreename = "tbe_norm_tree"
 	tberawtreename = "tbe_raw_tree"
@@ -268,21 +268,20 @@ func (p *GalaxyProcessor) submitPhyML(a *model.Analysis, alignfileid string) (er
 	var jobs []string
 
 	tl := p.galaxy.NewToolLauncher(a.GalaxyHistory, p.phymlid)
-	tl.AddFileInput("input", alignfileid, "hda")
+	tl.AddFileInput("input_align", alignfileid, "hda")
 
 	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
-		tl.AddParameter("seqtype", "aa")
+		tl.AddParameter("sequence|seqtype", "aa")
 	} else if a.AlignAlphabet == model.ALIGN_NUCLEOTIDS {
-		tl.AddParameter("seqtype", "nt")
+		tl.AddParameter("sequence|seqtype", "nt")
 	} else {
 		err = errors.New("Unkown sequence alphabet in alignment")
 		return
 	}
 	tl.AddParameter("stat_crit", "aic")
-	tl.AddParameter("move", "NNI")
-	tl.AddParameter("support_condition|support", "boot")
-	tl.AddParameter("support_condition|boot_number", fmt.Sprintf("%d", a.NbootRep))
-	tl.AddParameter("inpuTree|inputtree", "false")
+	tl.AddParameter("move", "SPR")
+	tl.AddParameter("bootstrap|support", "boot")
+	tl.AddParameter("bootstrap|replicates", fmt.Sprintf("%d", a.NbootRep))
 
 	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
@@ -304,7 +303,7 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, alignfileid string) 
 	var jobs []string
 
 	tl := p.galaxy.NewToolLauncher(a.GalaxyHistory, p.fasttreeid)
-	tl.AddFileInput("input", alignfileid, "hda")
+	tl.AddFileInput("input_align", alignfileid, "hda")
 
 	if a.AlignAlphabet == model.ALIGN_AMINOACIDS {
 		tl.AddParameter("sequence_type|seqtype", "")
@@ -314,12 +313,11 @@ func (p *GalaxyProcessor) submitFastTree(a *model.Analysis, alignfileid string) 
 		err = errors.New("Unkown sequence alphabet in alignment")
 		return
 	}
-	tl.AddParameter("modelprot", "-lg")
-	tl.AddParameter("modeldna", "-gtr")
+	tl.AddParameter("sequence_type|modelprot", "-lg")
+	tl.AddParameter("sequence_type|modeldna", "-gtr")
 	tl.AddParameter("gamma", "-gamma")
-	tl.AddParameter("support_condition|support", "boot")
-	tl.AddParameter("support_condition|nboot", fmt.Sprintf("%d", a.NbootRep))
-	tl.AddParameter("inpuTree|inputtree", "false")
+	tl.AddParameter("bootstrap|do_bootstrap", "true")
+	tl.AddParameter("bootstrap|replicates", fmt.Sprintf("%d", a.NbootRep))
 
 	_, jobs, err = p.galaxy.LaunchTool(tl)
 	if err != nil {
@@ -378,7 +376,7 @@ func (p *GalaxyProcessor) submitToGalaxy(a *model.Analysis) (err error) {
 			}
 
 			// The alignment was converted to phylip by server:newAnalysis function, now we upload it to history
-			if seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "fasta"); err != nil {
+			if seqid, _, err = p.galaxy.UploadFile(history.Id, a.SeqAlign, "phylip"); err != nil {
 				log.Print("Error while Uploading reference sequence file: " + err.Error())
 				return
 			}
