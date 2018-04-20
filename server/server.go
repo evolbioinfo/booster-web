@@ -25,6 +25,7 @@ package server
 
 import (
 	"bufio"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"github.com/nu7hatch/gouuid"
@@ -38,6 +39,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -446,25 +448,19 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 	} else {
 		log.Print(fmt.Sprintf("New booster analysis submited | id=%s | ", a.Id))
 
-		if treefile, err = copyFile(dir, reffile, refheader); err != nil {
+		if treefile, err = copyTreeFile(dir, reffile, refheader); err != nil {
+			err = errors.New("Reference tree : Newick format error (" + err.Error() + ")")
 			log.Print(err)
 			return nil, err
 		}
-		if boottreefile, err = copyFile(dir, bootfile, bootheader); err != nil {
+		if boottreefile, err = copyTreeFile(dir, bootfile, bootheader); err != nil {
+			err = errors.New("Bootstrap trees : Newick format error (" + err.Error() + ")")
 			log.Print(err)
 			return nil, err
 		}
 
-		if err = testNewickFile(treefile); err != nil {
-			err = errors.New("Reference tree : Newick format error")
-			return nil, err
-		}
-		if err = testNewickFile(boottreefile); err != nil {
-			err = errors.New("Bootstrap trees : Newick format error")
-			log.Print(err)
-			return nil, err
-		}
 		if err = testSameTips(treefile, boottreefile); err != nil {
+			log.Print(err)
 			err = errors.New("Reference and bootstrap trees do not have the same tip names")
 			log.Print(err)
 			return nil, err
@@ -506,6 +502,55 @@ func copyFile(tmpdir string, infile multipart.File, infileheader *multipart.File
 	return
 }
 
+/*
+Clean tip names (remove spaces before and after tip names) and copy the tree file
+returns an error if the tree file is not in newick format
+*/
+func copyTreeFile(tmpdir string, infile multipart.File, infileheader *multipart.FileHeader) (fpath string, err error) {
+	var treereader *bufio.Reader
+	var gzreader *gzip.Reader
+	var t tree.Trees
+	var trees <-chan tree.Trees
+	var f *os.File
+	if infileheader != nil {
+		/* Read trees */
+		/* File reader (plain text or gzip) */
+		if strings.HasSuffix(infileheader.Filename, ".gz") {
+			if gzreader, err = gzip.NewReader(f); err != nil {
+				return
+			}
+			treereader = bufio.NewReader(gzreader)
+		} else {
+			treereader = bufio.NewReader(infile)
+		}
+		trees = tutils.ReadMultiTrees(treereader, tutils.FORMAT_NEWICK)
+		/* Open output file */
+		fpath = filepath.Join(tmpdir, infileheader.Filename)
+		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
+			log.Print(err)
+			return
+		}
+
+		for t = range trees {
+			if t.Err != nil {
+				err = t.Err
+				return
+			}
+			// Clean tip names if needed
+			for _, t := range t.Tree.Tips() {
+				t.SetName(strings.TrimSpace(t.Name()))
+			}
+			// Write the to the output file */
+			f.WriteString(t.Tree.Newick() + "\n")
+		}
+		defer f.Close()
+	} else {
+		err = errors.New("File to copy does not exist")
+		log.Print(err)
+	}
+	return
+}
+
 // Write alignment in fasta or in phylip depending on the workflow to launch: phyml or fasttree
 func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileHeader, workflow string) (fpath string, err error) {
 	var f *os.File
@@ -529,23 +574,6 @@ func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileH
 	} else {
 		err = errors.New("File to copy does not exist")
 		log.Print(err)
-	}
-	return
-}
-
-// Parses a given file as Newick and returns an error if an error occurs
-//
-// If it is a multi newick file (bootstrap trees for example), then will only test
-// the first tree.
-func testNewickFile(file string) (err error) {
-	var treereader *bufio.Reader
-	var treefile goio.Closer
-	if treefile, treereader, err = utils.GetReader(file); err != nil {
-		return
-	}
-	defer treefile.Close()
-	if _, err = newick.NewParser(treereader).Parse(); err != nil {
-		return
 	}
 	return
 }
@@ -577,16 +605,16 @@ func testSameTips(ref, boot string) (err error) {
 	}
 	defer treefile.Close()
 	trees = tutils.ReadMultiTrees(treereader, tutils.FORMAT_NEWICK)
-
+	reftree.UpdateTipIndex()
 	for boottree = range trees {
 		if boottree.Err != nil {
 			err = boottree.Err
 			return
 		}
+		boottree.Tree.UpdateTipIndex()
 		if err = reftree.CompareTipIndexes(boottree.Tree); err != nil {
 			return
 		}
-
 	}
 	return
 }
