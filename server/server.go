@@ -53,6 +53,8 @@ import (
 	"github.com/fredericlemoine/goalign/io/phylip"
 	"github.com/fredericlemoine/goalign/io/utils"
 	"github.com/fredericlemoine/gotree/io/newick"
+	tutils "github.com/fredericlemoine/gotree/io/utils"
+	"github.com/fredericlemoine/gotree/tree"
 )
 
 const (
@@ -462,6 +464,11 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 			log.Print(err)
 			return nil, err
 		}
+		if err = testSameTips(treefile, boottreefile); err != nil {
+			err = errors.New("Reference and bootstrap trees do not have the same tip names")
+			log.Print(err)
+			return nil, err
+		}
 	}
 
 	a.SeqAlign = seqalignfile
@@ -539,6 +546,47 @@ func testNewickFile(file string) (err error) {
 	defer treefile.Close()
 	if _, err = newick.NewParser(treereader).Parse(); err != nil {
 		return
+	}
+	return
+}
+
+// Parses the two newick files in input and returns an error if the set of
+// tips are different between tree in ref and all tres in boot.
+//
+// ref is considered as a unique tree file
+// boot is a multi newick file (bootstrap trees for example)
+func testSameTips(ref, boot string) (err error) {
+	var treereader *bufio.Reader
+	var treefile goio.Closer
+	var reftree *tree.Tree
+	var boottree tree.Trees
+	var trees <-chan tree.Trees
+
+	if treefile, treereader, err = utils.GetReader(ref); err != nil {
+		return
+	}
+	if reftree, err = newick.NewParser(treereader).Parse(); err != nil {
+		return
+	}
+	treefile.Close()
+
+	/* Read bootstrap trees */
+	/* File reader (plain text or gzip) */
+	if treefile, treereader, err = utils.GetReader(boot); err != nil {
+		return
+	}
+	defer treefile.Close()
+	trees = tutils.ReadMultiTrees(treereader, tutils.FORMAT_NEWICK)
+
+	for boottree = range trees {
+		if boottree.Err != nil {
+			err = boottree.Err
+			return
+		}
+		if err = reftree.CompareTipIndexes(boottree.Tree); err != nil {
+			return
+		}
+
 	}
 	return
 }
