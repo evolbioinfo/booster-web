@@ -169,3 +169,6 @@ docker run --privileged=true \
             -p 8 -p 8121:21 -p 8122:22 \
             evolbioinfo/booster-web:v0.1.8
 ```
+
+Then visit [http://localhost:8000](http://localhost:8000) .
+
