@@ -40,6 +40,9 @@ You can directly run the `booster-web` executable without any configuration. It 
 
 To access the web interface, just go to [http://localhost:8080](http://localhost:8080)
 
+Note that the local processor only allows to run booster from already inferred trees (no PhyML-SMS nor FastTree workflow).
+To also run tree inference workflows, see "Other configurations".
+
 ## Other configurations
 It is possible to configure `booster-web` to run with specific options. To do so, create a configuration file `booster-web.toml` with the following sections:
 * database
@@ -152,4 +155,17 @@ port = 4000
 #[authentication]
 #user     = "user"
 #password = "pass"
+```
+
+## Using booster-web and galaxy servers via Docker
+
+A docker image containing all tools used by booster-web (PhyML-SMS, FastTree, Booster) is avalaible on [docker hub](https://hub.docker.com/r/evolbioinfo/booster-web/).
+
+* Running already configured booster-web + galaxy servers:
+
+```
+docker run --privileged=true \
+            -p 8080:80 -p 8000:8888 \
+            -p 8 -p 8121:21 -p 8122:22 \
+            evolbioinfo/booster-web:v0.1.8
 ```

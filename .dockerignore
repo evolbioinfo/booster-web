@@ -1,0 +1,8 @@
+deploy/
+booster-web
+vendor/
+misc/
+Gopkg.lock
+booster-web.toml
+README.md
+.git

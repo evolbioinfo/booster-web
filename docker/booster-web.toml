@@ -1,0 +1,27 @@
+[database]
+type = "memory"
+
+[runners]
+type="galaxy"
+queuesize = 200
+nbrunners  = 1
+memlimit  = 8000000000
+keepold = 0
+
+[galaxy]
+key="admin"
+url="http://localhost"
+
+[galaxy.tools]
+booster="booster"
+phyml="phyml-sms"
+fasttree="fasttree"
+
+[notification]
+activated=false
+
+[logging]
+logfile = "/home/booster/booster.log"
+
+[http]
+port = 8888
