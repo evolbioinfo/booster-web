@@ -71,7 +71,7 @@ func (n *NullNotifier) Notify(status string, analysisId string, runName string, 
 func (n *EmailNotifier) Notify(status string, analysisId string, runName string, workflow string, email string) (err error) {
 	// Connect to the remote SMTP server.
 	if email != "" && n.server != "" && n.user != "" && n.pass != "" && n.sender != "" && validateEmail(email) {
-		ref := "Lemoine, F., Entfellner, J. B. D., Wilkinson, E., Correia, D., Davila Felipe, M., De Oliveira, T., & Gascuel, O. (2017). Boosting Felsenstein Phylogenetic Bootstrap. bioRxiv."
+		ref := "Lemoine, F., Domelevo-Entfellner, J.-B., Wilkinson, E., Correia, D., Davila Felipe, M., De Oliveira, T., Gascuel, O. (2018). Renewing Felsenstein's Phylogenetic Bootstrap in the Era of Big Data, Nature 556, 452-45."
 		jobstr := "Booster[1]"
 		if workflow == "PhyML-SMS" {
 			ref = "[1] Lefort, V., Longueville, J. E., & Gascuel, O. (2017). SMS: Smart Model Selection in PhyML. Molecular Biology and Evolution.\n[2] " + ref
