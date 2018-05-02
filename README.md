@@ -27,6 +27,22 @@ make
 
 The `booster-web` executable should be located in the `$GOPATH/bin` folder.
 
+## From Docker
+
+A docker image running a Galaxy server with all tools used by booster-web (PhyML-SMS, FastTree, Booster) and an already configured booster-web server is avalaible on [docker hub](https://hub.docker.com/r/evolbioinfo/booster-web/).
+
+* Download and run already configured booster-web + galaxy servers:
+
+```
+docker run --privileged=true \
+            -p 8080:80 -p 8000:8888 \
+            -p 8 -p 8121:21 -p 8122:22 \
+            evolbioinfo/booster-web:v0.1.8
+```
+
+Then visit [http://localhost:8000](http://localhost:8000) .
+
+
 # Running BOOSTER-WEB
 ## Default configuration
 You can directly run the `booster-web` executable without any configuration. It will setup a web server with the following default properties:
@@ -41,7 +57,7 @@ You can directly run the `booster-web` executable without any configuration. It 
 To access the web interface, just go to [http://localhost:8080](http://localhost:8080)
 
 Note that the local processor only allows to run booster from already inferred trees (no PhyML-SMS nor FastTree workflow).
-To also run tree inference workflows, see "Other configurations".
+To also run tree inference workflows, see "Other configurations", or "Install from Docker".
 
 ## Other configurations
 It is possible to configure `booster-web` to run with specific options. To do so, create a configuration file `booster-web.toml` with the following sections:
@@ -156,19 +172,4 @@ port = 4000
 #user     = "user"
 #password = "pass"
 ```
-
-## Using booster-web and galaxy servers via Docker
-
-A docker image containing all tools used by booster-web (PhyML-SMS, FastTree, Booster) is avalaible on [docker hub](https://hub.docker.com/r/evolbioinfo/booster-web/).
-
-* Running already configured booster-web + galaxy servers:
-
-```
-docker run --privileged=true \
-            -p 8080:80 -p 8000:8888 \
-            -p 8 -p 8121:21 -p 8122:22 \
-            evolbioinfo/booster-web:v0.1.8
-```
-
-Then visit [http://localhost:8000](http://localhost:8000) .
 
