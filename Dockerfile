@@ -20,8 +20,14 @@ RUN wget --no-check-certificate -O /usr/local/go1.9.2.linux-amd64.tar.gz https:/
     && rm -f /usr/local/go1.9.2.linux-amd64.tar.gz \
     && mkdir -p /gopath/ \
     && go get -u github.com/golang/dep/cmd/dep \
+    && go get github.com/jteeuwen/go-bindata/... \
+    && go get github.com/elazarl/go-bindata-assetfs/... \
     && cd /gopath/src/github.com/evolbioinfo/booster-web \
     && dep ensure \
+    && go-bindata-assetfs -pkg static  webapp/static/... \
+    && mv bindata.go static \
+    && go-bindata -o bindata_templates.go -pkg templates  webapp/templates/... \
+    && mv bindata_templates.go templates \
     && go build -o booster-web -ldflags "-X github.com/evolbioinfo/booster-web/cmd.Version=v1.8" github.com/evolbioinfo/booster-web \
     && mv booster-web /home/booster/booster-web \
     && rm -rf /gopath /usr/local/go

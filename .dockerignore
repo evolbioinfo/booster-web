@@ -6,3 +6,5 @@ Gopkg.lock
 booster-web.toml
 README.md
 .git
+templates/bindata_templates.go
+static/bindata.go
