@@ -95,13 +95,8 @@ var emailnotification bool
 // logging.logfile : path to log file: stdout, stderr or any file name (default stderr)
 func InitServer(cfg config.Provider) {
 	initLog(cfg)
+
 	log.Print("Starting booster-web")
-	initUUIDGenerator()
-	initDB(cfg)
-	initEmailNotification(cfg)
-	initProcessor(cfg)
-	initCleanKill()
-	initLogin(cfg)
 
 	templatePath = "webapp" + string(os.PathSeparator) + "templates" + string(os.PathSeparator)
 
@@ -132,6 +127,10 @@ func InitServer(cfg config.Provider) {
 	logintpl, err7 := templates.Asset(templatePath + "login.html")
 	if err7 != nil {
 		log.Fatal(err7)
+	}
+	maintenancetpl, err8 := templates.Asset(templatePath + "maintenance.html")
+	if err8 != nil {
+		log.Fatal(err8)
 	}
 
 	templatesMap = make(map[string]*template.Template)
@@ -172,27 +171,43 @@ func InitServer(cfg config.Provider) {
 		templatesMap["login"] = t
 	}
 
-	/* HTML handlers */
-	http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
-	http.HandleFunc("/run", validateHtml(runHandler))                        /* Handler for running a new analysis */
-	http.HandleFunc("/help", validateHtml(helpHandler))                      /* Handler for the help page */
-	http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler)))        /* Handler for viewing analysis results */
-	http.HandleFunc("/itol/", validateHtml(makeRawNormHandler(itolHandler))) /* Handler for uploading tree to itol */
-	http.HandleFunc("/", validateHtml(indexHandler))                         /* Home Page*/
-	http.HandleFunc("/login", loginHandler)                                  /* Handler for login */
-	http.HandleFunc("/settoken", setToken)                                   /* Set token in cookie via form post */
-	http.HandleFunc("/gettoken", getToken)                                   /* get token via api using json post data */
-	http.HandleFunc("/logout", validateHtml(logout))                         /* Handler for logout */
-
-	/* Api handlers */
-	http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
-	http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))          /* Handler for returning a tree image */
-	http.HandleFunc("/api/randrunname", validateApi(makeApiHandler(apiRandNameGeneratorHandler)))
+	if t, err := template.New("maintenance").Parse(string(layouttpl) + string(maintenancetpl)); err != nil {
+		log.Fatal(err)
+	} else {
+		templatesMap["maintenance"] = t
+	}
 
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.FileServer(static.AssetFS()))
 	//http.Handle("/", http.RedirectHandler("/new/", http.StatusFound))
 
+	if cfg.GetBool("general.maintenance") {
+		http.HandleFunc("/", maintenanceHandler) /* Handler for maintenance page  */
+	} else {
+		initUUIDGenerator()
+		initDB(cfg)
+		initEmailNotification(cfg)
+		initProcessor(cfg)
+		initCleanKill()
+		initLogin(cfg)
+
+		/* HTML handlers */
+		http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
+		http.HandleFunc("/run", validateHtml(runHandler))                        /* Handler for running a new analysis */
+		http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler)))        /* Handler for viewing analysis results */
+		http.HandleFunc("/itol/", validateHtml(makeRawNormHandler(itolHandler))) /* Handler for uploading tree to itol */
+		http.HandleFunc("/help", validateHtml(helpHandler))                      /* Handler for the help page */
+		http.HandleFunc("/", validateHtml(indexHandler))                         /* Home Page*/
+		http.HandleFunc("/login", loginHandler)                                  /* Handler for login */
+		http.HandleFunc("/settoken", setToken)                                   /* Set token in cookie via form post */
+		http.HandleFunc("/gettoken", getToken)                                   /* get token via api using json post data */
+		http.HandleFunc("/logout", validateHtml(logout))                         /* Handler for logout */
+
+		/* Api handlers */
+		http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
+		http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))          /* Handler for returning a tree image */
+		http.HandleFunc("/api/randrunname", validateApi(makeApiHandler(apiRandNameGeneratorHandler)))
+	}
 	port := cfg.GetInt("http.port")
 	if port == 0 {
 		port = HTTP_PORT_DEFAULT

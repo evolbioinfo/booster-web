@@ -115,6 +115,18 @@ func helpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func maintenanceHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
+	if t, err := getTemplate("maintenance"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", nil); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
 func viewHandler(w http.ResponseWriter, r *http.Request, id string) {
 	w.Header().Set("Content-Type", "text/html")
 	//nw := t.Newick()
