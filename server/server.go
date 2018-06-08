@@ -513,10 +513,12 @@ func copyTreeFile(tmpdir string, infile multipart.File, infileheader *multipart.
 	var trees <-chan tree.Trees
 	var f *os.File
 	if infileheader != nil {
+		fname := strings.TrimSuffix(infileheader.Filename, ".gz")
 		/* Read trees */
 		/* File reader (plain text or gzip) */
 		if strings.HasSuffix(infileheader.Filename, ".gz") {
-			if gzreader, err = gzip.NewReader(f); err != nil {
+			if gzreader, err = gzip.NewReader(infile); err != nil {
+				log.Print(err)
 				return
 			}
 			treereader = bufio.NewReader(gzreader)
@@ -525,12 +527,12 @@ func copyTreeFile(tmpdir string, infile multipart.File, infileheader *multipart.
 		}
 		trees = tutils.ReadMultiTrees(treereader, tutils.FORMAT_NEWICK)
 		/* Open output file */
-		fpath = filepath.Join(tmpdir, infileheader.Filename)
+		fpath = filepath.Join(tmpdir, fname+".gz")
 		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
 			log.Print(err)
 			return
 		}
-
+		gw := gzip.NewWriter(f)
 		for t = range trees {
 			if t.Err != nil {
 				err = t.Err
@@ -541,9 +543,10 @@ func copyTreeFile(tmpdir string, infile multipart.File, infileheader *multipart.
 				t.SetName(strings.TrimSpace(t.Name()))
 			}
 			// Write the to the output file */
-			f.WriteString(t.Tree.Newick() + "\n")
+			gw.Write([]byte(t.Tree.Newick() + "\n"))
 		}
-		defer f.Close()
+		gw.Close()
+		f.Close()
 	} else {
 		err = errors.New("File to copy does not exist")
 		log.Print(err)
@@ -560,7 +563,8 @@ func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileH
 		return
 	}
 	if infileheader != nil {
-		fpath = filepath.Join(tmpdir, infileheader.Filename)
+		fname := strings.TrimSuffix(infileheader.Filename, ".gz")
+		fpath = filepath.Join(tmpdir, fname)
 		if f, err = os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE, 0666); err != nil {
 			log.Print(err)
 		} else {
