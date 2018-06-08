@@ -61,6 +61,8 @@ To also run tree inference workflows, see "Other configurations", or "Install fr
 
 ## Other configurations
 It is possible to configure `booster-web` to run with specific options. To do so, create a configuration file `booster-web.toml` with the following sections:
+* general
+  * maintenance = [true|false]
 * database
   * type = "[memory|mysql]"
   * user = "[mysql user]"
@@ -103,6 +105,10 @@ And run booster web: `booster-web --config booster-web.toml`
 
 ## Example of configuration file
 ```
+[general]
+# If booster-web is in maintenance mode or not
+maintenance = false
+
 [database]
 # Type : memory|mysql (default memory)
 type = "mysql"
