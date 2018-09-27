@@ -16,8 +16,9 @@
 
 [[constraint]]
   name = "github.com/fredericlemoine/gotree"
-  version = "=v0.2.10"
-  
+  #version = "=v0.3.0a"
+  revision = "80f94e033967aaa2b013cbdf0a3a602b06cda547"
+
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"
   version = "=1.3.0"
