@@ -228,21 +228,21 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if refalign, refalignhandler, err = r.FormFile("refalign"); err != nil {
-		err = errors.New("No Sequence file given: " + err.Error())
+	if refalign, refalignhandler, err = r.FormFile("refalign"); err != nil || refalignhandler.Size == 0 {
+		err = errors.New("No Sequence file given")
 		io.LogInfo(err.Error())
 
 		// No given sequence file
 		// Then we take tree files
-		if reftree, refhandler, err = r.FormFile("reftree"); err != nil {
-			err = errors.New("No reference tree file given (nor sequence file): " + err.Error())
+		if reftree, refhandler, err = r.FormFile("reftree"); err != nil || refhandler.Size == 0 {
+			err = errors.New("No reference tree file given (nor sequence file): ")
 			io.LogError(err)
 			errorHandler(w, r, err)
 			return
 		}
 		defer reftree.Close()
 
-		if boottree, boothandler, err = r.FormFile("boottrees"); err != nil {
+		if boottree, boothandler, err = r.FormFile("boottrees"); err != nil || boothandler.Size == 0 {
 			err = errors.New("No bootstrap tree file given (nor sequence file): " + err.Error())
 			io.LogError(err)
 			errorHandler(w, r, err)

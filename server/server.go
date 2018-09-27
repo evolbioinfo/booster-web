@@ -422,28 +422,31 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 
 	/* tmp analysis folder */
 	if dir, err = ioutil.TempDir("", uuid); err != nil {
-		log.Print(err)
+		log.Printf("Tmp analysis folder error: %v", err)
 		return
 	}
 
 	// Reference sequences if given
-	if refalignheader != nil {
+	if refalignheader != nil && refalignheader.Size != 0 {
 		// We parse it while detecting automaticall the format
 		var r *bufio.Reader
 		var al align.Alignment
 
 		if r, err = utils.GetReaderFromReader(utils.GzipExtension(refalignheader.Filename), refalign); err != nil {
+			log.Printf("GetReaderFromReader: %v", err)
 			log.Print(err)
 			return
 		}
 
 		if al, _, err = utils.ParseAlignmentAuto(r, false); err != nil {
+			log.Printf("ParseAlignmentAuto: %v", err)
 			log.Print(err)
 			return
 		}
 
 		// Write alignment in fasta or in phylip depending on the workflow to launch: phyml or fasttree
 		if seqalignfile, err = writeAlign(al, dir, refalignheader, workflow); err != nil {
+			log.Print("WriteAlign seq: %v", err)
 			log.Print(err)
 			return
 		}
@@ -455,6 +458,7 @@ func newAnalysis(refalign multipart.File, refalignheader *multipart.FileHeader,
 
 		// Given workflow to launch does not exist
 		if a.Workflow, err = model.WorkflowConst(workflow); err != nil {
+			log.Print("WorkflowConst: %v", err)
 			log.Print(err)
 			return
 		}
