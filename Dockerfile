@@ -15,9 +15,9 @@ COPY docker/booster-web.toml /home/booster/booster-web.toml
 ENV PATH=/usr/local/go/bin:/gopath/bin/:$PATH
 ENV GOPATH=/gopath
 
-RUN wget --no-check-certificate -O /usr/local/go1.9.2.linux-amd64.tar.gz https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf /usr/local/go1.9.2.linux-amd64.tar.gz \
-    && rm -f /usr/local/go1.9.2.linux-amd64.tar.gz \
+RUN wget --no-check-certificate -O /usr/local/go1.10.3.linux-amd64.tar.gz https://storage.googleapis.com/golang/go1.10.3.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf /usr/local/go1.10.3.linux-amd64.tar.gz \
+    && rm -f /usr/local/go1.10.3.linux-amd64.tar.gz \
     && mkdir -p /gopath/ \
     && go get -u github.com/golang/dep/cmd/dep \
     && go get github.com/jteeuwen/go-bindata/... \
