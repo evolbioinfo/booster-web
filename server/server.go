@@ -207,6 +207,7 @@ func InitServer(cfg config.Provider) {
 		http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
 		http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))          /* Handler for returning a tree image */
 		http.HandleFunc("/api/randrunname", validateApi(makeApiHandler(apiRandNameGeneratorHandler)))
+		http.HandleFunc("/status", validateApi(apiStatus)) /* Handler for getting server status */
 	}
 	port := cfg.GetInt("http.port")
 	if port == 0 {

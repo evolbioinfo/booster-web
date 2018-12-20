@@ -289,6 +289,12 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
 	json.NewEncoder(w).Encode(a)
 }
 
+func apiStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	a := &struct{ Status string }{"OK"}
+	json.NewEncoder(w).Encode(a)
+}
+
 func apiImageHandler(w http.ResponseWriter, r *http.Request, id string, collapse float64, layout, algorithm, format string) {
 	var a *model.Analysis
 
