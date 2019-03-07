@@ -8,7 +8,7 @@
 
 [[constraint]]
   name = "github.com/fredericlemoine/goalign"
-  version = "=v0.2.8"
+  version = "v0.3.0-alpha5"
 
 [[constraint]]
   name = "github.com/fredericlemoine/golaxy"
@@ -16,8 +16,9 @@
 
 [[constraint]]
   name = "github.com/fredericlemoine/gotree"
-  #version = "=v0.3.0a"
-  revision = "80f94e033967aaa2b013cbdf0a3a602b06cda547"
+  #version = "v0.3.0b"
+  #revision = "80f94e033967aaa2b013cbdf0a3a602b06cda547"
+  revision = "596805b091bd86946c536e1ff5acf1674f17ce40"
 
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"
