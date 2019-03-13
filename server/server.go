@@ -589,7 +589,7 @@ func writeAlign(al align.Alignment, tmpdir string, infileheader *multipart.FileH
 			log.Print(err)
 		} else {
 			// replace special characters from sequence names
-			al.CleanNames()
+			al.CleanNames(nil)
 			if wf == model.WORKFLOW_PHYML_SMS {
 				f.WriteString(phylip.WriteAlignment(al, false, false, false))
 			} else {
