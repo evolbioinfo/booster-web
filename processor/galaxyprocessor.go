@@ -36,10 +36,10 @@ import (
 	"github.com/evolbioinfo/booster-web/database"
 	"github.com/evolbioinfo/booster-web/model"
 	"github.com/evolbioinfo/booster-web/notification"
-	"github.com/fredericlemoine/goalign/align"
+	"github.com/evolbioinfo/goalign/align"
 	"github.com/fredericlemoine/golaxy"
-	"github.com/fredericlemoine/gotree/io/newick"
-	"github.com/fredericlemoine/gotree/tree"
+	"github.com/evolbioinfo/gotree/io/newick"
+	"github.com/evolbioinfo/gotree/tree"
 )
 
 // The Galaxy processor launches jobs on a remote galaxy server

@@ -50,13 +50,13 @@ import (
 	"github.com/evolbioinfo/booster-web/processor"
 	"github.com/evolbioinfo/booster-web/static"
 	"github.com/evolbioinfo/booster-web/templates"
-	"github.com/fredericlemoine/goalign/align"
-	"github.com/fredericlemoine/goalign/io/fasta"
-	"github.com/fredericlemoine/goalign/io/phylip"
-	"github.com/fredericlemoine/goalign/io/utils"
-	"github.com/fredericlemoine/gotree/io/newick"
-	tutils "github.com/fredericlemoine/gotree/io/utils"
-	"github.com/fredericlemoine/gotree/tree"
+	"github.com/evolbioinfo/goalign/align"
+	"github.com/evolbioinfo/goalign/io/fasta"
+	"github.com/evolbioinfo/goalign/io/phylip"
+	"github.com/evolbioinfo/goalign/io/utils"
+	"github.com/evolbioinfo/gotree/io/newick"
+	tutils "github.com/evolbioinfo/gotree/io/utils"
+	"github.com/evolbioinfo/gotree/tree"
 )
 
 const (

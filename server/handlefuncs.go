@@ -39,9 +39,9 @@ import (
 	"github.com/evolbioinfo/booster-web/model"
 	"github.com/evolbioinfo/booster-web/templates"
 	"github.com/evolbioinfo/booster-web/utils"
-	"github.com/fredericlemoine/gotree/draw"
-	"github.com/fredericlemoine/gotree/io/newick"
-	"github.com/fredericlemoine/gotree/upload"
+	"github.com/evolbioinfo/gotree/draw"
+	"github.com/evolbioinfo/gotree/io/newick"
+	"github.com/evolbioinfo/gotree/upload"
 )
 
 type ErrorInfo struct {

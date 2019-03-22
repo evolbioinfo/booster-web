@@ -39,9 +39,9 @@ import (
 	"github.com/evolbioinfo/booster-web/io"
 	"github.com/evolbioinfo/booster-web/model"
 	"github.com/evolbioinfo/booster-web/notification"
-	"github.com/fredericlemoine/gotree/io/utils"
-	"github.com/fredericlemoine/gotree/support"
-	"github.com/fredericlemoine/gotree/tree"
+	"github.com/evolbioinfo/gotree/io/utils"
+	"github.com/evolbioinfo/gotree/support"
+	"github.com/evolbioinfo/gotree/tree"
 )
 
 const (
