@@ -73,7 +73,7 @@ raxmlHPC -f a -m GTRGAMMA -c 4 -s align.phy -n align -T 4 -p $RANDOM -x $RANDOM 
 # Output Bootstrap trees: RAxML_bootstrap.align
 ```
 
-* FastTree: you will need to generate bootstrap alignments (Phylip format), such as with [goalign](https://github.com/fredericlemoine/goalign). Input file: alignment (Phylip or Fasta format)
+* FastTree: you will need to generate bootstrap alignments (Phylip format), such as with [goalign](https://github.com/evolbioinfo/goalign). Input file: alignment (Phylip or Fasta format)
 ```bash
 # Build bootstrap alignments
 goalign build seqboot -i align.phy -p -n 100 -o boot -S
