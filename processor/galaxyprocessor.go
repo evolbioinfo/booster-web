@@ -37,9 +37,9 @@ import (
 	"github.com/evolbioinfo/booster-web/model"
 	"github.com/evolbioinfo/booster-web/notification"
 	"github.com/evolbioinfo/goalign/align"
-	"github.com/fredericlemoine/golaxy"
 	"github.com/evolbioinfo/gotree/io/newick"
 	"github.com/evolbioinfo/gotree/tree"
+	"github.com/fredericlemoine/golaxy"
 )
 
 // The Galaxy processor launches jobs on a remote galaxy server
@@ -547,7 +547,7 @@ func (p *GalaxyProcessor) initJobMonitor() {
 				}
 
 				if err = p.db.UpdateAnalysis(job); err != nil {
-					log.Print(fmt.Sprintf("Problem updating job %s: %s"), job.Id, err.Error())
+					log.Print(fmt.Sprintf("Problem updating job %s: %s", job.Id, err.Error()))
 				}
 				time.Sleep(1 * time.Second)
 			}

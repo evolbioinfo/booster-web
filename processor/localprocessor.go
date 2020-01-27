@@ -117,19 +117,14 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 	// We initialize computing routines
 	for cpu := 0; cpu < nbrunners; cpu++ {
 		go func(cpu int) {
-			var tbesupporter support.Supporter
-			var fbpsupporter support.Supporter
 
 			for a := range p.queue {
+				sup := support.NewSupporter()
 				log.Print(fmt.Sprintf("CPU=%d | New analysis, id=%s", cpu, a.Id))
 
 				a.Status = model.STATUS_RUNNING
 				a.StartRunning = time.Now().Format(time.RFC1123)
 
-				io.LogInfo("Booster supporter")
-				tbesupporter = support.NewBoosterSupporter(true, true, false, true, 0.3, false)
-				io.LogInfo("Classical supporter")
-				fbpsupporter = support.NewClassicalSupporter(true)
 				finished := false
 				er := p.db.UpdateAnalysis(a)
 				if er != nil {
@@ -140,14 +135,10 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 				var wg sync.WaitGroup // For waiting end of step computation
 				wg.Add(1)
 				go func() {
+					defer wg.Done()
+
 					var err error
-					if err = p.computeSupport(tbesupporter, a, jobthreads, true); err != nil {
-						io.LogError(err)
-						a.Message = err.Error()
-						a.Status = model.STATUS_ERROR
-						return
-					}
-					if err = p.computeSupport(fbpsupporter, a, jobthreads, false); err != nil {
+					if err = p.computeSupport(sup, a, jobthreads); err != nil {
 						io.LogError(err)
 						a.Message = err.Error()
 						a.Status = model.STATUS_ERROR
@@ -164,12 +155,11 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 					if err = p.notifier.Notify(a.StatusStr(), a.Id, a.RunName, a.WorkflowStr(), a.EMail); err != nil {
 						io.LogError(err)
 					}
-					wg.Done()
 				}()
 
 				go func() {
 					for {
-						a.Nboot = tbesupporter.Progress()
+						a.Nboot = sup.Progress()
 						p.db.UpdateAnalysis(a)
 						if finished {
 							break
@@ -182,13 +172,12 @@ func (p *LocalProcessor) InitProcessor(nbrunners, queuesize, timeout, jobthreads
 					go func() {
 						time.Sleep(time.Duration(timeout) * time.Second)
 						if !finished {
-							tbesupporter.Cancel()
-							fbpsupporter.Cancel()
+							sup.Cancel()
 						}
 					}()
 				}
 				wg.Wait()
-				a.Nboot = tbesupporter.Progress()
+				a.Nboot = sup.Progress()
 				p.db.UpdateAnalysis(a)
 				finished = true
 			}
@@ -238,10 +227,10 @@ func (p *LocalProcessor) CancelAnalyses() (err error) {
 	return
 }
 
-func (p *LocalProcessor) computeSupport(supporter support.Supporter, a *model.Analysis, jobThreads int, tbe bool) (err error) {
+func (p *LocalProcessor) computeSupport(sup *support.Supporter, a *model.Analysis, jobThreads int) (err error) {
 	var refTree *tree.Tree
 	var tmpFile *os.File
-	var treeFile goio.Closer
+	var treeFile, treeFile2 goio.Closer
 	var treeReader *bufio.Reader
 	var treeChannel <-chan tree.Trees
 	var dat []byte
@@ -261,47 +250,64 @@ func (p *LocalProcessor) computeSupport(supporter support.Supporter, a *model.An
 	treeChannel = utils.ReadMultiTrees(treeReader, utils.FORMAT_NEWICK)
 	tmpFile, err = ioutil.TempFile("", "booster_log")
 	defer os.Remove(tmpFile.Name()) // clean up
+	defer tmpFile.Close()
+
 	if err != nil {
 		io.LogError(err)
 		return
 	}
 
-	err = support.ComputeSupport(refTree, treeChannel, tmpFile, jobThreads, supporter)
+	err = support.FBP(refTree, treeChannel, jobThreads, sup)
 	a.End = time.Now().Format(time.RFC1123)
-	tmpFile.Close()
 	if err != nil {
-		return
 		io.LogError(err)
 		return
 	}
 
-	if supporter.Canceled() {
+	refTree.ClearPvalues()
+	a.FbpTree = refTree.Newick()
+	if sup.Canceled() {
 		a.Status = model.STATUS_TIMEOUT
+		a.Message = "FBP Canceled during analysis"
+	} else {
+		a.Message = "FBP Finished"
+	}
+
+	p.db.UpdateAnalysis(a)
+
+	treeFile2, treeReader, err = utils.GetReader(a.Bootfile)
+	defer treeFile2.Close()
+	if err != nil {
+		io.LogError(err)
+		return
+	}
+	treeChannel = utils.ReadMultiTrees(treeReader, utils.FORMAT_NEWICK)
+	var raw *tree.Tree
+	if raw, err = support.TBE(refTree, treeChannel, jobThreads,
+		true, true, true, 0.3, tmpFile, sup); err != nil {
+		io.LogError(err)
+		return
+	}
+
+	// We  print the raw support tree first
+	a.TbeRawTree = raw.Newick()
+
+	if dat, err = ioutil.ReadFile(tmpFile.Name()); err != nil {
+		io.LogError(err)
+		return
+	}
+
+	a.TbeLogs = cleanTBELogs(string(dat))
+	a.TbeNormTree = refTree.Newick()
+
+	if sup.Canceled() {
+		a.Status = model.STATUS_TIMEOUT
+		a.Message = a.Message + ", TBE Canceled during analysis"
 	} else {
 		a.Status = model.STATUS_FINISHED
-	}
-	refTree.ClearPvalues()
-
-	if tbe {
-		// We  print the raw support tree first
-		reformated := refTree.Clone()
-		support.ReformatAvgDistance(reformated)
-		a.TbeRawTree = reformated.Newick()
-		// We normalize the supports and save the tree
-		support.NormalizeTransferDistancesByDepth(refTree)
-
-		if dat, err = ioutil.ReadFile(tmpFile.Name()); err != nil {
-			io.LogError(err)
-			return
-		}
-
-		a.TbeLogs = cleanTBELogs(string(dat))
-		a.TbeNormTree = refTree.Newick()
-		a.Message = "Finished"
-	} else {
-		a.FbpTree = refTree.Newick()
-		a.Message = "Finished"
+		a.Message = a.Message + ", TBE Finished"
 	}
 
+	p.db.UpdateAnalysis(a)
 	return
 }

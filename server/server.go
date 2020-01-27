@@ -28,8 +28,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"github.com/nu7hatch/gouuid"
-	"github.com/russross/blackfriday"
 	"html/template"
 	goio "io"
 	"io/ioutil"
@@ -42,6 +40,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	uuid "github.com/nu7hatch/gouuid"
+	"github.com/russross/blackfriday"
 
 	"github.com/evolbioinfo/booster-web/config"
 	"github.com/evolbioinfo/booster-web/database"
