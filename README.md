@@ -70,6 +70,9 @@ It is possible to configure `booster-web` to run with specific options. To do so
   * host = "[mysql host]"
   * pass = "[mysql pass]"
   * dbname = "[mysql dbname]"
+* itol
+  * key = "[iTOL api key]"
+  * project = "[itol upload project]"
 * runners
   * type="[galaxy|local]"
   * queuesize=[size of job queue]
@@ -117,6 +120,10 @@ port = 3306
 host = "mysql_server"
 pass = "mysql_pass"
 dbname = "mysql_db_name"
+
+[itol]
+key = "xxxxxxxxxx"
+project = "booster"
 
 [runners]
 # galaxy|local if galaxy: required galaxykey & galaxyurl

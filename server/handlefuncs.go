@@ -158,7 +158,7 @@ func itolHandler(w http.ResponseWriter, r *http.Request, id string, rawdistances
 		return
 	}
 	if a.Status == model.STATUS_FINISHED || a.Status == model.STATUS_TIMEOUT {
-		upld := upload.NewItolUploader("", "")
+		upld := upload.NewItolUploader(iTOLKey, iTOLProject)
 		var uptree string
 		if fbptree {
 			uptree = a.FbpTree

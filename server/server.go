@@ -79,6 +79,9 @@ var logfile *os.File = nil
 
 var emailNotifier notification.Notifier
 
+var iTOLKey string     // Key of iTOL user
+var iTOLProject string // iTOL Project to which upload the trees
+
 var galaxyprocessor bool // if the processor is a galaxyprocessor
 var emailnotification bool
 
@@ -191,6 +194,9 @@ func InitServer(cfg config.Provider) {
 		initProcessor(cfg)
 		initCleanKill()
 		initLogin(cfg)
+
+		iTOLKey = cfg.GetString("itol.key")
+		iTOLProject = cfg.GetString("itol.project")
 
 		/* HTML handlers */
 		http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
