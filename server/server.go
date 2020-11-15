@@ -197,8 +197,8 @@ func InitServer(cfg config.Provider) {
 
 		iTOLKey = cfg.GetString("itol.key")
 		iTOLProject = cfg.GetString("itol.project")
-		log.Print("iTOLKey: %v", iTOLKey)
-		log.Print("iTOLProject: %v", iTOLProject)
+		log.Print(fmt.Sprintf("iTOLKey: %v", iTOLKey))
+		log.Print(fmt.Sprintf("iTOLProject: %v", iTOLProject))
 
 		/* HTML handlers */
 		http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
