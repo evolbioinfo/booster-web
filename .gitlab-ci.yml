@@ -1,0 +1,58 @@
+stages:
+    - build
+    - deploy
+
+services:
+- docker:18.09.9-dind
+
+
+build:
+    image: docker:18.09.9
+    stage: build
+    script:
+        - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+        - docker build --build-arg CI_COMMIT_REF_SLUG --build-arg CI_COMMIT_SHA --build-arg CI_COMMIT_SHORT_SHA --cache-from "$CI_REGISTRY_IMAGE:latest" --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+        - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+        - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+deploy-prod:
+    stage: deploy
+    image: registry-gitlab.pasteur.fr/dsi-tools/docker-images:docker_kubernetes_image
+    variables:
+        NAMESPACE: "booster-prod"
+        PUBLIC_URL: "booster.pasteur.cloud"
+        INGRESS_CLASS: "external"
+    environment:
+        name: k8sprod-02-booster
+        url: https://booster.pasteur.cloud
+    script:
+        - yum install gettext -y
+        - kubectl delete secret registry-gitlab -n $NAMESPACE --ignore-not-found=true || true
+        - kubectl create secret docker-registry -n ${NAMESPACE} registry-gitlab --docker-server=registry-gitlab.pasteur.fr --docker-username=${DEPLOY_USER} --docker-password=${DEPLOY_TOKEN} --docker-email=kubernetes@pasteur.fr --dry-run -o yaml | kubectl apply -n ${NAMESPACE} -f -
+        - envsubst < manifest_mysql.yaml | kubectl apply -n ${NAMESPACE} -f -
+        - kubectl wait --for=condition=available --timeout=600s deployment/mysql -n ${NAMESPACE}   
+        - envsubst < manifest.yaml | kubectl apply -n ${NAMESPACE} -f -
+        - kubectl patch deployment -n ${NAMESPACE} booster -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
+    only:
+        - master
+
+deploy-dev:
+    stage: deploy
+    image: registry-gitlab.pasteur.fr/dsi-tools/docker-images:docker_kubernetes_image
+    variables:
+        NAMESPACE: "booster-dev"
+        PUBLIC_URL: "booster.dev.pasteur.cloud"
+        INGRESS_CLASS: "internal"
+    environment:
+        name: k8sdev-01-booster-dev
+        url: https://booster.dev.pasteur.cloud
+    script:
+        - yum install gettext -y
+        - kubectl delete secret registry-gitlab -n $NAMESPACE --ignore-not-found=true || true
+        - kubectl create secret docker-registry -n ${NAMESPACE} registry-gitlab --docker-server=registry-gitlab.pasteur.fr --docker-username=${DEPLOY_USER} --docker-password=${DEPLOY_TOKEN} --docker-email=kubernetes@pasteur.fr --dry-run -o yaml | kubectl apply -n ${NAMESPACE} -f -
+        - envsubst < manifest_mysql.yaml | kubectl apply -n ${NAMESPACE} -f -
+        - kubectl wait --for=condition=available --timeout=600s deployment/mysql -n ${NAMESPACE}
+        - envsubst < manifest.yaml | kubectl apply -n ${NAMESPACE} -f -
+        - kubectl patch deployment -n ${NAMESPACE} booster -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
+    only:
+        - dev

@@ -10,7 +10,7 @@ VPATH=./static/
 all: dep build install
 
 dep:
-	${DEP_EXECUTABLE} ensure
+	${GO_EXECUTABLE} get .
 
 build: assetfs
 	${GO_EXECUTABLE} build -o ${NAME} -ldflags "-X ${VERSION_PACKAGE}=${VERSION}" ${PACKAGE}
@@ -20,10 +20,10 @@ install: assetfs
 	${GO_EXECUTABLE} install -ldflags "-X ${VERSION_PACKAGE}=${VERSION}" ${PACKAGE}
 
 assetfs:
-	go get github.com/jteeuwen/go-bindata/...
-	go get github.com/elazarl/go-bindata-assetfs/...
+	go get github.com/go-bindata/go-bindata/...@v3.1.2
+	go get github.com/elazarl/go-bindata-assetfs/...@v1.0.0
 	go-bindata-assetfs -pkg static  webapp/static/...
-	mv bindata.go static
+	mv bindata_assetfs.go static
 	go-bindata -o bindata_templates.go -pkg templates  webapp/templates/...
 	mv bindata_templates.go templates
 

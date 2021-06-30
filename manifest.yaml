@@ -1,0 +1,161 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booster
+spec:
+  selector:
+    matchLabels:
+      app: ${NAMESPACE}
+      role: front
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ${NAMESPACE}
+        role: front
+    spec:
+      containers:
+      - name: booster
+        image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 101
+          runAsGroup: 101
+        env:
+          - name: MAINTENANCE
+            value: "${MAINTENANCE}"
+          - name: BOOSTERTOOL
+            value: "${BOOSTERTOOL}"
+          - name: PHYMLTOOL
+            value: "${PHYMLTOOL}"
+          - name: FASTTREETOOL
+            value: "${FASTTREETOOL}"
+          - name: ITOLKEY
+            value: "${ITOLKEY}"
+          - name: ITOLPROJECT
+            value: "${ITOLPROJECT}"
+          - name: EMAILNOTIF
+            value: "${EMAILNOTIF}"
+          - name: GALAXYKEY
+            value: "${GALAXYKEY}"
+          - name: GALAXYURL
+            value: "${GALAXYURL}"
+          - name: RESULTPAGE
+            value: "${RESULTPAGE}"
+          - name: SENDER
+            value: "${SENDER}"
+          - name: SMTPPASS
+            value: "${SMTPPASS}"
+          - name: SMTPPORT
+            value: "${SMTPPORT}"
+          - name: SMTPSERVER
+            value: "${SMTPSERVER}"
+          - name: SMTPUSER
+            value: "${SMTPUSER}"
+          - name: DATABASE_TYPE
+            value: "mysql"
+          - name: DATABASE_HOST
+            value: mysql
+          - name: DATABASE_NAME
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: database
+          - name: DATABASE_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials
+                key: password
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+      imagePullSecrets:
+        - name: registry-gitlab
+      volumes:
+        - name: mysql-credentials
+          secret:
+            secretName: mysql-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booster-web
+  labels:
+    app: ${NAMESPACE}
+    role: front
+spec:
+  selector:
+    app: ${NAMESPACE}
+    role: front
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: booster-web
+  labels:
+    app: ${NAMESPACE}
+    role: front
+  annotations:
+#    kubernetes.io/ingress.class: internal
+    kubernetes.io/ingress.class: "$INGRESS_CLASS"
+spec:
+  rules:
+    - host: ${PUBLIC_URL}
+      http:
+        paths:
+        - backend:
+            serviceName: booster-web
+            servicePort: 80
+          path: /
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt
+#     kubernetes.io/ingress.class: external
+#     nginx.ingress.kubernetes.io/rewrite-target: https://${PUBLIC_URL}/$1
+#   name: booster-web-www-redirect
+# spec:
+#   rules:
+#   - host: www.${PUBLIC_URL}
+#     http:
+#       paths:
+#       - backend:
+#           serviceName: booster-web
+#           servicePort: 80
+#         path: /(.*)
+#   tls:
+#   - hosts:
+#     - www.${PUBLIC_URL}
+#     secretName: www.${PUBLIC_URL}
+

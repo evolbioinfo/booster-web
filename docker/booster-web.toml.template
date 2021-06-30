@@ -1,0 +1,55 @@
+[general]
+maintenance = "${MAINTENANCE}"
+
+[database]
+type = "${DATABASE_TYPE}"
+user = "${DATABASE_USER}"
+port = 3306
+host = "${DATABASE_HOST}"
+pass = "${DATABASE_PASSWORD}"
+dbname = "${DATABASE_NAME}"
+keepold = 20
+
+[itol]
+key="${ITOLKEY}"
+project="${ITOLPROJECT}"
+
+[runners]
+type="galaxy"
+queuesize = 50
+nbrunners  = 50
+jobthreads  = 1
+# Timout for each job in seconds (default unlimited)
+# 5 days
+timeout  = 604800 
+memlimit = 8000000000
+
+[galaxy]
+key="${GALAXYKEY}"
+url="${GALAXYURL}"
+
+[galaxy.tools]
+booster="${BOOSTERTOOL}"
+phyml="${PHYMLTOOL}"
+fasttree="${FASTTREETOOL}"
+
+[notification]
+activated=${EMAILNOTIF}
+smtp="${SMTPSERVER}"
+port=${SMTPPORT}
+user="${SMTPUSER}"
+pass="${SMTPPASS}"
+resultpage="${RESULTPAGE}"
+sender="${SENDER}"
+
+[logging]
+# Log file : "stdout", "stderr", or any file
+logfile = "stderr"
+
+[http]
+# HTTP server Listening port
+port = 8888
+
+#[authentication]
+#user="reviewer-bioevol"
+#password="reviewer2017"
