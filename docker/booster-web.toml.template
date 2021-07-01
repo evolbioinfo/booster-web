@@ -51,5 +51,5 @@ logfile = "stderr"
 port = 8888
 
 #[authentication]
-#user="reviewer-bioevol"
-#password="reviewer2017"
+#user="user"
+#password="pass"
