@@ -20,11 +20,11 @@ deploy-prod:
     image: registry-gitlab.pasteur.fr/dsi-tools/docker-images:docker_kubernetes_image
     variables:
         NAMESPACE: "booster-prod"
-        PUBLIC_URL: "booster.pasteur.cloud"
+        PUBLIC_URL: "booster.pasteur.fr"
         INGRESS_CLASS: "external"
     environment:
         name: k8sprod-02-booster
-        url: https://booster.pasteur.cloud
+        url: https://booster.pasteur.fr
     script:
         - yum install gettext -y
         - kubectl delete secret registry-gitlab -n $NAMESPACE --ignore-not-found=true || true
