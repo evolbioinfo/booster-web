@@ -147,7 +147,7 @@ metadata:
   name: booster-web-www-redirect
 spec:
   rules:
-  - host: booster.c3bi.pasteur.fr
+  - host: booster-test.c3bi.pasteur.fr
     http:
       paths:
       - backend:
@@ -156,6 +156,6 @@ spec:
         path: /(.*)
   tls:
   - hosts:
-    - booster.c3bi.pasteur.fr
-    secretName: booster.c3bi.pasteur.fr
+    - booster-test.c3bi.pasteur.fr
+    secretName: booster-test.c3bi.pasteur.fr
 
