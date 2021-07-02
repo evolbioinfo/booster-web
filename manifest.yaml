@@ -136,26 +136,26 @@ spec:
             serviceName: booster-web
             servicePort: 80
           path: /
-# ---
-# apiVersion: extensions/v1beta1
-# kind: Ingress
-# metadata:
-#   annotations:
-#     cert-manager.io/cluster-issuer: letsencrypt
-#     kubernetes.io/ingress.class: external
-#     nginx.ingress.kubernetes.io/rewrite-target: https://${PUBLIC_URL}/$1
-#   name: booster-web-www-redirect
-# spec:
-#   rules:
-#   - host: www.${PUBLIC_URL}
-#     http:
-#       paths:
-#       - backend:
-#           serviceName: booster-web
-#           servicePort: 80
-#         path: /(.*)
-#   tls:
-#   - hosts:
-#     - www.${PUBLIC_URL}
-#     secretName: www.${PUBLIC_URL}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    kubernetes.io/ingress.class: external
+    nginx.ingress.kubernetes.io/rewrite-target: https://${PUBLIC_URL}/$1
+  name: booster-web-www-redirect
+spec:
+  rules:
+  - host: booster.c3bi.pasteur.fr
+    http:
+      paths:
+      - backend:
+          serviceName: booster-web
+          servicePort: 80
+        path: /(.*)
+  tls:
+  - hosts:
+    - booster.c3bi.pasteur.fr
+    secretName: booster.c3bi.pasteur.fr
 
