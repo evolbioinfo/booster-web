@@ -44,7 +44,7 @@ spec:
         fsGroup: 999
       containers:
       - name: mysql
-        image: mysql:8.0.20
+        image: mysql:5.7
         args:
           - --max_allowed_packet=1G
           #- --sql-mode='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
