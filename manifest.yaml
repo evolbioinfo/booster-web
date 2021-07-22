@@ -127,6 +127,7 @@ metadata:
   annotations:
 #    kubernetes.io/ingress.class: internal
     kubernetes.io/ingress.class: "$INGRESS_CLASS"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
 spec:
   rules:
     - host: ${PUBLIC_URL}
@@ -144,6 +145,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt
     kubernetes.io/ingress.class: external
     nginx.ingress.kubernetes.io/rewrite-target: https://${PUBLIC_URL}/$1
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
   name: booster-web-www-redirect
 spec:
   rules:
