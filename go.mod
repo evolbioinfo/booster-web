@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/ajstarks/svgo v0.0.0-20181006003313-6ce6a3bcf6cd // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/elazarl/go-bindata-assetfs v1.0.0
 	github.com/evolbioinfo/goalign v0.3.2
 	github.com/evolbioinfo/gotree v0.3.2-0.20200127131446-557c64ae96f9
@@ -14,6 +13,7 @@ require (
 	github.com/fredericlemoine/gostats v0.1.1-0.20190718132557-e750742f8b05 // indirect
 	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.3.0
+	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/jlaffaye/ftp v0.0.0-20190126081051-8019e6774408 // indirect
 	github.com/llgcode/draw2d v0.0.0-20180124133339-274031cf2abe // indirect
