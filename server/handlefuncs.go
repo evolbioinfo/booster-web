@@ -488,7 +488,7 @@ func makeApiRandomHandler(fn func(http.ResponseWriter, *http.Request)) http.Hand
 	}
 }
 
-var validApiMonitorPath = regexp.MustCompile("^/api/monitor$")
+var validApiMonitorPath = regexp.MustCompile("^/api/monitor/{0,1}$")
 
 func makeApiMonitorHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
