@@ -53,6 +53,12 @@ spec:
             value: "${SMTPSERVER}"
           - name: SMTPUSER
             value: "${SMTPUSER}"
+          - name: AUTHENTICATION
+            value: "${AUTHENTICATION}"
+          - name: AUTHUSER
+            value: "${AUTHUSER}"
+          - name: AUTHPASS
+            value: "${AUTHPASS}"
           - name: DATABASE_TYPE
             value: "mysql"
           - name: DATABASE_HOST

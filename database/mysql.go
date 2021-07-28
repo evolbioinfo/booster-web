@@ -28,8 +28,10 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"database/sql"
+
 	"github.com/evolbioinfo/booster-web/model"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -50,7 +52,7 @@ type dbanalysis struct {
 	seqalign      string `mysql-type:"blob"`                                            // Input Fasta Sequence Alignment if user wants to build the ref/boot trees (priority over reffile and bootfile)
 	nbootrep      int    `mysql-type:"int" mysql-default:"0"`                           // Number of bootstrap replicates given by the user to build the bootstrap trees
 	alignfile     string `mysql-type:"longblob"`                                        // alignment input file (if user wants to build the trees)
-	alignalphabet int    `mysql-type:"int" mysql-default:"-1`                           // alignment alphabet 0: aa | 1: nt
+	alignalphabet int    `mysql-type:"int" mysql-default:"-1"`                          // alignment alphabet 0: aa | 1: nt
 	workflow      int    `mysql-type:"int" mysql-default:"-1"`                          // workflow to launch if alignfile!="" : 8: PhyML-SMS, 9: FastTRee
 	alignnbseq    int    `mysql-type:"int" mysql-default:"-1"`                          // Number of sequences in the given alignment
 	alignlength   int    `mysql-type:"int" mysql-default:"-1"`                          // Length of the given alignment
@@ -356,6 +358,104 @@ func (db *MySQLBoosterwebDB) DeleteOldAnalyses(days int) (err error) {
 	query += fmt.Sprintf("%d", days) + " DAY);"
 
 	_, err = db.db.Exec(query)
+
+	return
+}
+func (db *MySQLBoosterwebDB) GetAnalysesPerDay() (perDay map[time.Time]int, err error) {
+	perDay = make(map[time.Time]int)
+
+	if db.db == nil {
+		err = errors.New("Database not opened")
+		return
+	}
+	var rows *sql.Rows
+	query := `SELECT startpending FROM analysis`
+
+	if rows, err = db.db.Query(query); err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var start string
+	var toRound time.Time
+	for rows.Next() {
+		if err = rows.Scan(&start); err != nil {
+			return
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		if toRound, err = time.Parse(time.RFC1123, start); err != nil {
+			return
+		}
+
+		rounded := time.Date(toRound.Year(), toRound.Month(), toRound.Day(), 0, 0, 0, 0, toRound.Location())
+		perDay[rounded] = perDay[rounded] + 1
+	}
+	return
+}
+
+func (db *MySQLBoosterwebDB) GetAnalysesStats() (pendingJobs, runningJobs, finishedJobs, canceledJobs, errorJobs, timeoutJobs int, avgJobsPerDay float64, err error) {
+	minDay := time.Now()
+	maxDay := time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
+	total := 0.0
+
+	if db.db == nil {
+		err = errors.New("Database not opened")
+		return
+	}
+	var rows *sql.Rows
+	query := `SELECT startpending,status FROM analysis`
+
+	if rows, err = db.db.Query(query); err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var start string
+	var status int
+	var toRound time.Time
+	for rows.Next() {
+		if err = rows.Scan(&start, &status); err != nil {
+			return
+		}
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		if toRound, err = time.Parse(time.RFC1123, start); err != nil {
+			return
+		}
+		rounded := time.Date(toRound.Year(), toRound.Month(), toRound.Day(), 0, 0, 0, 0, toRound.Location())
+		total++
+		if rounded.Before(minDay) {
+			minDay = rounded
+		}
+		if rounded.After(maxDay) {
+			maxDay = rounded
+		}
+
+		switch status {
+		case model.STATUS_PENDING:
+			pendingJobs++
+		case model.STATUS_RUNNING:
+			runningJobs++
+		case model.STATUS_FINISHED:
+			finishedJobs++
+		case model.STATUS_ERROR:
+			errorJobs++
+		case model.STATUS_CANCELED:
+			canceledJobs++
+		case model.STATUS_TIMEOUT:
+			timeoutJobs++
+		case model.STATUS_DELETED:
+			finishedJobs++
+		default:
+		}
+	}
+
+	avgJobsPerDay = total / float64(int(maxDay.Sub(minDay).Hours()/24))
 
 	return
 }

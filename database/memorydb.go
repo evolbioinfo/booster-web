@@ -99,3 +99,59 @@ func (db *MemoryBoosterWebDB) GetRunningAnalyses() (analyses []*model.Analysis, 
 	analyses = make([]*model.Analysis, 0)
 	return
 }
+
+func (db *MemoryBoosterWebDB) GetAnalysesPerDay() (perDay map[time.Time]int, err error) {
+	perDay = make(map[time.Time]int)
+	var toRound time.Time
+	for _, a := range db.allanalyses {
+		if toRound, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
+			return
+		}
+		rounded := time.Date(toRound.Year(), toRound.Month(), toRound.Day(), 0, 0, 0, 0, toRound.Location())
+		perDay[rounded] = perDay[rounded] + 1
+	}
+	return
+}
+
+func (db *MemoryBoosterWebDB) GetAnalysesStats() (pendingJobs, runningJobs, finishedJobs, canceledJobs, errorJobs, timeoutJobs int, avgJobsPerDay float64, err error) {
+	var toRound time.Time
+
+	minDay := time.Now()
+	maxDay := time.Date(1970, time.January, 1, 0, 0, 0, 0, time.UTC)
+	total := 0.0
+	for _, a := range db.allanalyses {
+		if toRound, err = time.Parse(time.RFC1123, a.StartPending); err != nil {
+			return
+		}
+		rounded := time.Date(toRound.Year(), toRound.Month(), toRound.Day(), 0, 0, 0, 0, toRound.Location())
+		total++
+		if rounded.Before(minDay) {
+			minDay = rounded
+		}
+		if rounded.After(maxDay) {
+			maxDay = rounded
+		}
+
+		switch a.Status {
+		case model.STATUS_PENDING:
+			pendingJobs++
+		case model.STATUS_RUNNING:
+			runningJobs++
+		case model.STATUS_FINISHED:
+			finishedJobs++
+		case model.STATUS_ERROR:
+			errorJobs++
+		case model.STATUS_CANCELED:
+			canceledJobs++
+		case model.STATUS_TIMEOUT:
+			timeoutJobs++
+		case model.STATUS_DELETED:
+			finishedJobs++
+		default:
+		}
+	}
+
+	avgJobsPerDay = total / float64(int(maxDay.Sub(minDay).Hours()/24))
+
+	return
+}

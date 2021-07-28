@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 package database
 
 import (
+	"time"
+
 	"github.com/evolbioinfo/booster-web/model"
 )
 
@@ -35,4 +37,6 @@ type BoosterwebDB interface {
 	InitDatabase() error
 	DeleteOldAnalyses(days int) error
 	GetRunningAnalyses() (analyses []*model.Analysis, err error)
+	GetAnalysesPerDay() (perDay map[time.Time]int, err error) // Number of analyses per day
+	GetAnalysesStats() (pendingJobs, runningJobs, finishedJobs, canceledJobs, errorJobs, timeoutJobs int, avgJobsPerDay float64, err error)
 }

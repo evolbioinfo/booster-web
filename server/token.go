@@ -57,7 +57,7 @@ type Claims struct {
 
 type AuthJson struct {
 	Username string `json:"username"`
-	Password string `json:"password`
+	Password string `json:"password"`
 }
 
 type AuthResponse struct {
@@ -70,7 +70,7 @@ func setToken(res http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	user := req.FormValue("user")
 	pass := req.FormValue("pass")
-	if user == Username && pass == Password {
+	if Username != "" && user == Username && Password != "" && pass == Password {
 		// Expires the token and cookie in 1 hour
 		expireToken := time.Now().Add(time.Hour * 1).Unix()
 		expireCookie := time.Now().Add(time.Hour * 1)
@@ -114,7 +114,7 @@ func getToken(res http.ResponseWriter, req *http.Request) {
 		answer.Status = 1
 		answer.Message = err2.Error()
 	} else {
-		if authjson.Username == Username && authjson.Password == Password {
+		if Username != "" && authjson.Username == Username && Password != "" && authjson.Password == Password {
 			// Expires the token and cookie in 1 hour
 			expireToken := time.Now().Add(time.Hour * 10).Unix()
 
@@ -123,7 +123,7 @@ func getToken(res http.ResponseWriter, req *http.Request) {
 				Username,
 				jwt.StandardClaims{
 					ExpiresAt: expireToken,
-					Issuer:    "booster.c3bi.pasteur.fr",
+					Issuer:    "booster.pasteur.fr",
 				},
 			}
 
@@ -144,8 +144,8 @@ func getToken(res http.ResponseWriter, req *http.Request) {
 }
 
 // Middleware to protect private pages
-func validateHtml(page http.HandlerFunc) http.HandlerFunc {
-	if Authent {
+func validateHtml(page http.HandlerFunc, force bool) http.HandlerFunc {
+	if Authent || force {
 		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 
 			// If no Auth cookie is set then go to login
@@ -186,8 +186,8 @@ func validateHtml(page http.HandlerFunc) http.HandlerFunc {
 }
 
 // Middleware to protect private API
-func validateApi(page http.HandlerFunc) http.HandlerFunc {
-	if Authent {
+func validateApi(page http.HandlerFunc, force bool) http.HandlerFunc {
+	if Authent || force {
 		return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 
 			var val string

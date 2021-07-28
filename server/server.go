@@ -104,88 +104,101 @@ func InitServer(cfg config.Provider) {
 
 	templatePath = "webapp" + string(os.PathSeparator) + "templates" + string(os.PathSeparator)
 
-	formtpl, err1 := templates.Asset(templatePath + "inputform.html")
-	if err1 != nil {
-		log.Fatal(err1)
+	var formtpl, errtpl, viewtpl, indextpl, layouttpl, helptpl, logintpl, maintenancetpl, monitortpl []byte
+	var err error
+	var t *template.Template
+
+	if formtpl, err = templates.Asset(templatePath + "inputform.html"); err != nil {
+		log.Fatal(err)
 	}
-	errtpl, err2 := templates.Asset(templatePath + "error.html")
-	if err2 != nil {
-		log.Fatal(err2)
+
+	if errtpl, err = templates.Asset(templatePath + "error.html"); err != nil {
+		log.Fatal(err)
 	}
-	viewtpl, err3 := templates.Asset(templatePath + "view.html")
-	if err3 != nil {
-		log.Fatal(err3)
+
+	if viewtpl, err = templates.Asset(templatePath + "view.html"); err != nil {
+		log.Fatal(err)
 	}
-	indextpl, err4 := templates.Asset(templatePath + "index.html")
-	if err4 != nil {
-		log.Fatal(err4)
+
+	if indextpl, err = templates.Asset(templatePath + "index.html"); err != nil {
+		log.Fatal(err)
 	}
-	layouttpl, err5 := templates.Asset(templatePath + "layout.html")
-	if err5 != nil {
-		log.Fatal(err5)
+
+	if layouttpl, err = templates.Asset(templatePath + "layout.html"); err != nil {
+		log.Fatal(err)
 	}
-	helptpl, err6 := templates.Asset(templatePath + "help.html")
-	if err6 != nil {
-		log.Fatal(err6)
+
+	if helptpl, err = templates.Asset(templatePath + "help.html"); err != nil {
+		log.Fatal(err)
 	}
-	logintpl, err7 := templates.Asset(templatePath + "login.html")
-	if err7 != nil {
-		log.Fatal(err7)
+
+	if logintpl, err = templates.Asset(templatePath + "login.html"); err != nil {
+		log.Fatal(err)
 	}
-	maintenancetpl, err8 := templates.Asset(templatePath + "maintenance.html")
-	if err8 != nil {
-		log.Fatal(err8)
+
+	if maintenancetpl, err = templates.Asset(templatePath + "maintenance.html"); err != nil {
+		log.Fatal(err)
+	}
+
+	if monitortpl, err = templates.Asset(templatePath + "monitor.html"); err != nil {
+		log.Fatal(err)
 	}
 
 	templatesMap = make(map[string]*template.Template)
 
-	if t, err := template.New("inputform").Parse(string(layouttpl) + string(formtpl)); err != nil {
+	if t, err = template.New("inputform").Parse(string(layouttpl) + string(formtpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["inputform"] = t
 	}
+	templatesMap["inputform"] = t
 
-	if t, err := template.New("error").Parse(string(layouttpl) + string(errtpl)); err != nil {
+	if t, err = template.New("error").Parse(string(layouttpl) + string(errtpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["error"] = t
 	}
+	templatesMap["error"] = t
 
-	if t, err := template.New("view").Parse(string(layouttpl) + string(viewtpl)); err != nil {
+	if t, err = template.New("view").Parse(string(layouttpl) + string(viewtpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["view"] = t
 	}
+	templatesMap["view"] = t
 
-	if t, err := template.New("index").Parse(string(layouttpl) + string(indextpl)); err != nil {
+	if t, err = template.New("index").Parse(string(layouttpl) + string(indextpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["index"] = t
 	}
+	templatesMap["index"] = t
 
-	if t, err := template.New("help").Funcs(template.FuncMap{"markDown": markDowner}).Parse(string(layouttpl) + string(helptpl)); err != nil {
+	if t, err = template.New("help").Funcs(template.FuncMap{"markDown": markDowner}).Parse(string(layouttpl) + string(helptpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["help"] = t
 	}
+	templatesMap["help"] = t
 
-	if t, err := template.New("login").Parse(string(layouttpl) + string(logintpl)); err != nil {
+	if t, err = template.New("login").Parse(string(layouttpl) + string(logintpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["login"] = t
 	}
+	templatesMap["login"] = t
 
-	if t, err := template.New("maintenance").Parse(string(layouttpl) + string(maintenancetpl)); err != nil {
+	if t, err = template.New("maintenance").Parse(string(layouttpl) + string(maintenancetpl)); err != nil {
 		log.Fatal(err)
-	} else {
-		templatesMap["maintenance"] = t
 	}
+	templatesMap["maintenance"] = t
+
+	if t, err = template.New("monitor").Parse(string(layouttpl) + string(monitortpl)); err != nil {
+		log.Fatal(err)
+	}
+	templatesMap["monitor"] = t
 
 	/* Static files handlers : js, css, etc. */
 	http.Handle("/static/", http.FileServer(static.AssetFS()))
 	//http.Handle("/", http.RedirectHandler("/new/", http.StatusFound))
 
 	if cfg.GetBool("general.maintenance") {
+		initDB(cfg)
+		initLogin(cfg)
+		http.HandleFunc("/settoken", setToken) /* Set token in cookie via form post */
+		http.HandleFunc("/gettoken", getToken) /* get token via api using json post data */
+
+		http.HandleFunc("/api/monitor", validateApi(makeApiMonitorHandler(apiMonitorHandler), true)) /* Handler for monitoring the server */
+		http.HandleFunc("/api/", validateApi(makeApiHandler(), false))                               /* Handler for getting server status */
+
 		http.HandleFunc("/", maintenanceHandler) /* Handler for maintenance page  */
 	} else {
 		initUUIDGenerator()
@@ -201,22 +214,25 @@ func InitServer(cfg config.Provider) {
 		log.Print(fmt.Sprintf("iTOLProject: %v", iTOLProject))
 
 		/* HTML handlers */
-		http.HandleFunc("/new/", validateHtml(newHandler))                       /* Handler for input form */
-		http.HandleFunc("/run", validateHtml(runHandler))                        /* Handler for running a new analysis */
-		http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler)))        /* Handler for viewing analysis results */
-		http.HandleFunc("/itol/", validateHtml(makeRawNormHandler(itolHandler))) /* Handler for uploading tree to itol */
-		http.HandleFunc("/help", validateHtml(helpHandler))                      /* Handler for the help page */
-		http.HandleFunc("/", validateHtml(indexHandler))                         /* Home Page*/
-		http.HandleFunc("/login", loginHandler)                                  /* Handler for login */
-		http.HandleFunc("/settoken", setToken)                                   /* Set token in cookie via form post */
-		http.HandleFunc("/gettoken", getToken)                                   /* get token via api using json post data */
-		http.HandleFunc("/logout", validateHtml(logout))                         /* Handler for logout */
+		http.HandleFunc("/new/", validateHtml(newHandler, false))                       /* Handler for input form */
+		http.HandleFunc("/monitor", validateHtml(monitorHandler, true))                 /* Handler for input form */
+		http.HandleFunc("/run", validateHtml(runHandler, false))                        /* Handler for running a new analysis */
+		http.HandleFunc("/view/", validateHtml(makeHandler(viewHandler), false))        /* Handler for viewing analysis results */
+		http.HandleFunc("/itol/", validateHtml(makeRawNormHandler(itolHandler), false)) /* Handler for uploading tree to itol */
+		http.HandleFunc("/help", validateHtml(helpHandler, false))                      /* Handler for the help page */
+		http.HandleFunc("/", validateHtml(indexHandler, false))                         /* Home Page*/
+		http.HandleFunc("/login", loginHandler)                                         /* Handler for login */
+		http.HandleFunc("/settoken", setToken)                                          /* Set token in cookie via form post */
+		http.HandleFunc("/gettoken", getToken)                                          /* get token via api using json post data */
+		http.HandleFunc("/logout", validateHtml(logout, false))                         /* Handler for logout */
 
 		/* Api handlers */
-		http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler))) /* Handler for returning an analysis */
-		http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler)))          /* Handler for returning a tree image */
-		http.HandleFunc("/api/randrunname", validateApi(makeApiHandler(apiRandNameGeneratorHandler)))
-		http.HandleFunc("/status", validateApi(apiStatus)) /* Handler for getting server status */
+		http.HandleFunc("/api/analysis/", validateApi(makeApiAnalysisHandler(apiAnalysisHandler), false)) /* Handler for returning an analysis */
+		http.HandleFunc("/api/monitor", validateApi(makeApiMonitorHandler(apiMonitorHandler), true))      /* Handler for monitoring the server */
+		http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler), false))          /* Handler for returning a tree image */
+		http.HandleFunc("/api/randrunname", validateApi(makeApiRandomHandler(apiRandNameGeneratorHandler), false))
+		http.HandleFunc("/status", validateApi(apiStatus, false))      /* Handler for getting server status */
+		http.HandleFunc("/api/", validateApi(makeApiHandler(), false)) /* Handler for getting server status */
 	}
 	port := cfg.GetInt("http.port")
 	if port == 0 {
@@ -384,8 +400,8 @@ func initLog(cfg config.Provider) {
 func initLogin(cfg config.Provider) {
 	user := cfg.GetString("authentication.user")
 	pass := cfg.GetString("authentication.password")
+	Authent = cfg.GetBool("authentication.activated")
 	if user != "" && pass != "" {
-		Authent = true
 		Username = user
 		Password = pass
 	}

@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -37,6 +38,7 @@ import (
 
 	"github.com/evolbioinfo/booster-web/io"
 	"github.com/evolbioinfo/booster-web/model"
+	"github.com/evolbioinfo/booster-web/monitoring"
 	"github.com/evolbioinfo/booster-web/templates"
 	"github.com/evolbioinfo/booster-web/utils"
 	"github.com/evolbioinfo/gotree/draw"
@@ -122,6 +124,24 @@ func maintenanceHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		if err := t.ExecuteTemplate(w, "layout", nil); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func monitorHandler(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var monitorInfo *monitoring.MonitorInformation
+
+	if monitorInfo, err = monitoring.Monitor(db); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if t, err := getTemplate("monitor"); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if err := t.ExecuteTemplate(w, "layout", monitorInfo); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
@@ -283,10 +303,23 @@ func apiAnalysisHandler(w http.ResponseWriter, r *http.Request, id string) {
 		a = model.NewAnalysis()
 		a.Message = err.Error()
 		io.LogError(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		apiError(w, err)
 		return
 	}
 	json.NewEncoder(w).Encode(a)
+}
+
+func apiMonitorHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var err error
+	var monitorInfo *monitoring.MonitorInformation
+	log.Println("Monitor API called")
+	if monitorInfo, err = monitoring.Monitor(db); err != nil {
+		io.LogError(err)
+		apiError(w, err)
+		return
+	}
+	json.NewEncoder(w).Encode(monitorInfo)
 }
 
 func apiStatus(w http.ResponseWriter, r *http.Request) {
@@ -440,16 +473,43 @@ func makeApiImageHandler(fn func(http.ResponseWriter, *http.Request, string, flo
 
 // URL of the form:
 // /api/randrunname
-var validApiPath = regexp.MustCompile("^/api/randrunname/{0,1}$")
+var validApiRandomPath = regexp.MustCompile("^/api/randrunname/{0,1}$")
 
-func makeApiHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func makeApiRandomHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := validApiPath.FindStringSubmatch(r.URL.Path)
+		m := validApiRandomPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
-			http.NotFound(w, r)
+			err := fmt.Errorf("api endpoint not found")
+			io.LogError(err)
+			apiError(w, err)
 			return
 		}
 		fn(w, r)
+	}
+}
+
+var validApiMonitorPath = regexp.MustCompile("^/api/monitor$")
+
+func makeApiMonitorHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := validApiMonitorPath.FindStringSubmatch(r.URL.Path)
+		if m == nil {
+			err := fmt.Errorf("api endpoint not found %s", r.URL.Path)
+			io.LogError(err)
+			apiError(w, err)
+			return
+		}
+		fn(w, r)
+	}
+}
+
+// Default API handler when others did not match
+func makeApiHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := fmt.Errorf("api endpoint not found %s", r.URL.Path)
+		io.LogError(err)
+		apiError(w, err)
+		return
 	}
 }
 

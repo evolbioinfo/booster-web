@@ -50,6 +50,7 @@ logfile = "stderr"
 # HTTP server Listening port
 port = 8888
 
-#[authentication]
-#user="user"
-#password="pass"
+[authentication]
+activated= ${AUTHENTICATION}
+user = "${AUTHUSER}"
+password = "${AUTHPASS}"

@@ -24,7 +24,6 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.6.0
-	golang.org/x/image v0.0.0-20190227222117-0694c2d4d067 // indirect
-	golang.org/x/sys v0.0.0-20190306220723-b294cbcfc56d // indirect
+	gonum.org/v1/plot v0.9.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 )
