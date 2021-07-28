@@ -193,12 +193,6 @@ func InitServer(cfg config.Provider) {
 	if cfg.GetBool("general.maintenance") {
 		initDB(cfg)
 		initLogin(cfg)
-		http.HandleFunc("/settoken", setToken) /* Set token in cookie via form post */
-		http.HandleFunc("/gettoken", getToken) /* get token via api using json post data */
-
-		http.HandleFunc("/api/monitor", validateApi(makeApiMonitorHandler(apiMonitorHandler), true)) /* Handler for monitoring the server */
-		http.HandleFunc("/api/", validateApi(makeApiHandler(), false))                               /* Handler for getting server status */
-
 		http.HandleFunc("/", maintenanceHandler) /* Handler for maintenance page  */
 	} else {
 		initUUIDGenerator()
@@ -232,7 +226,7 @@ func InitServer(cfg config.Provider) {
 		http.HandleFunc("/api/image/", validateApi(makeApiImageHandler(apiImageHandler), false))          /* Handler for returning a tree image */
 		http.HandleFunc("/api/randrunname", validateApi(makeApiRandomHandler(apiRandNameGeneratorHandler), false))
 		http.HandleFunc("/status", validateApi(apiStatus, false))      /* Handler for getting server status */
-		http.HandleFunc("/api/", validateApi(makeApiHandler(), false)) /* Handler for getting server status */
+		http.HandleFunc("/api/", validateApi(makeApiHandler(), false)) /* Default API handler */
 	}
 	port := cfg.GetInt("http.port")
 	if port == 0 {
