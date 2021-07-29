@@ -9,7 +9,7 @@ require (
 	github.com/evolbioinfo/goalign v0.3.2
 	github.com/evolbioinfo/gotree v0.3.2-0.20200127131446-557c64ae96f9
 	github.com/fredericlemoine/bitset v1.2.0 // indirect
-	github.com/fredericlemoine/golaxy v0.1.0
+	github.com/fredericlemoine/golaxy v0.1.1
 	github.com/fredericlemoine/gostats v0.1.1-0.20190718132557-e750742f8b05 // indirect
 	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.3.0

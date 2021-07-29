@@ -46,6 +46,8 @@ github.com/fredericlemoine/bitset v1.2.0 h1:RMdEqiqXAuufXz6gk1RO95w2p/Z7pFL0k45w
 github.com/fredericlemoine/bitset v1.2.0/go.mod h1:fEGlWPx4YvxYdUdd5ULnC/Tb0CLOdGX/Lgpx4ri32aU=
 github.com/fredericlemoine/golaxy v0.1.0 h1:MXA5aVcfcX5UP1C7QK3fPui77ph8XInU10qNk9kSy2I=
 github.com/fredericlemoine/golaxy v0.1.0/go.mod h1:l7GQ6PT1Akhv6geUnx1IkXqWBTUau5mVD8wtK3Cx77Y=
+github.com/fredericlemoine/golaxy v0.1.1 h1:qf3j9GyahK4Zkzzz0nhq4cM2vCWCrtZfYqTilTY6ys4=
+github.com/fredericlemoine/golaxy v0.1.1/go.mod h1:vkP0NsvL9V6B3nozRztGYTCKtiblGsnQdI+U+Zqj3Nc=
 github.com/fredericlemoine/gostats v0.1.1-0.20190718132557-e750742f8b05 h1:BsXj4B9H2aKAOL+BXRG6pjuRwAzt+zs8cefAlLCv+oE=
 github.com/fredericlemoine/gostats v0.1.1-0.20190718132557-e750742f8b05/go.mod h1:5OBBRN6vXzgXAJfprZ1WPahOHPJw2wJjmVtijhTqsX8=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
